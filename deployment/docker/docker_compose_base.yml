@@ -1,0 +1,83 @@
+services:
+  minio:
+    container_name: minio
+    image: minio/minio
+    restart: unless-stopped
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    networks:
+      - test-network
+    command: server --console-address ":9001" /data
+
+  postgres:
+    image: postgres
+    restart: unless-stopped
+    networks:
+      - test-network
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: main_db
+    ports:
+      - '5432:5432'
+
+  iceberg-rest:
+    image: tabulario/iceberg-rest:0.6.0
+    container_name: iceberg-rest
+    restart: unless-stopped
+    ports:
+      - '8181:8181'
+    networks:
+      - test-network
+    environment:
+      - CATALOG_CATALOG_IMPL=org.apache.iceberg.jdbc.JdbcCatalog
+      - CATALOG_URI=jdbc:postgresql://postgres:5432/main_db
+      - CATALOG_JDBC_USER=admin
+      - CATALOG_JDBC_PASSWORD=admin123
+      - CATALOG_WAREHOUSE=s3a://warehouse/
+      - CATALOG_IO_IMPL=org.apache.iceberg.aws.s3.S3FileIO
+      - AWS_ACCESS_KEY_ID=minio
+      - AWS_SECRET_ACCESS_KEY=minio123
+    depends_on:
+      - postgres
+      - minio
+
+  spark:
+    image: docker.io/bitnami/spark:4.1
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+    ports:
+      - '8080:8080'
+    networks:
+      - test-network
+
+  spark-worker:
+    image: docker.io/bitnami/spark:4.1
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+    networks:
+      - test-network
+
+
+networks:
+  test-network:
+    driver: bridge

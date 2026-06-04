@@ -1,0 +1,80 @@
+app:
+  name: "AI-Powered Data Governance Platform"
+  env: "development" # development, staging, production
+  version: "1.0.0"
+
+# =====================================================================
+# 1. CẤU HÌNH HẠ TẦNG LƯU TRỮ VÀ DATABASE (INFRASTRUCTURE)
+# =====================================================================
+database:
+  postgres:
+    host: "postgres"
+    port: 5432
+    user: "admin"
+    password: "admin"
+    database_name: "main_db"
+    uri: jdbc:postgresql://postgres:5432/main_db
+
+storage:
+  minio:
+    endpoint: "http://minio:9000"
+    access_key: "minio"
+    secret_key: "${MINIO_SECRET_KEY}"
+    bucket_warehouse: "s3a://warehouse/"
+    region: "us-east-1"
+
+# =====================================================================
+# 2. CẤU HÌNH CÁC ENGINE TÍNH TOÁN (COMPUTE ENGINES)
+# =====================================================================
+spark:
+  master_url: "spark://spark-master:7077"
+  app_name: "Lakehouse_Ingestion_Job"
+  iceberg_catalog_name: "iceberg"
+  executor_memory: "1g"
+  driver_memory: "1g"
+  iceberg_db_name: "iceberg_data"
+  csv_folder: "/opt/spark/data/csv/*.csv"
+
+trino:
+  host: "trino"
+  port: 8080
+  user: "admin"
+  catalog: "iceberg"
+
+# =====================================================================
+# 3. CẤU HÌNH DỊCH VỤ DÙNG CHUNG LLM (SHARED SERVICE)
+# =====================================================================
+llm:
+  provider: "ollama"
+  model_name: "llama3"
+  temperature: 0.0
+  api_key: "${LLM_API_KEY}"
+
+# =====================================================================
+# 4. CẤU HÌNH LUẬT QUẢN TRỊ VÀ BẢO MẬT (GOVERNANCE & POLICY)
+# =====================================================================
+governance:
+  # Các phương thức AI quét dữ liệu (chạy từ trái qua phải)
+  scanning_pipeline:
+    - "regex"
+    - "llm"
+
+  # Định nghĩa các nhãn bảo mật dữ liệu PII
+  pii_classification:
+    HIGH_PII:
+      - "phone_number"
+      - "credit_card"
+      - "citizen_id" # CCCD
+    MEDIUM_PII:
+      - "email"
+      - "full_name"
+      - "birth_date"
+    LOW:
+      - "gender"
+      - "address"
+
+  masking_strategies:
+    phone_number: "REDACT_LAST_4" # Che 4 số cuối: 098765****
+    credit_card: "MASK_ALL_EXCEPT_LAST_4" # Che hết chừa 4 số cuối: ************1234
+    email: "MASK_DOMAIN" # Che tên miền: khoa@****.com
+    citizen_id: "HASH_SHA256" # Băm luôn chuỗi bảo mật thành mã hex
