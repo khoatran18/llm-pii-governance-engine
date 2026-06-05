@@ -51,37 +51,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # Iceberg
-  #  iceberg-rest:
-  #    image: tabulario/iceberg-rest:0.6.0
-  #    container_name: iceberg-rest
-  #    restart: unless-stopped
-  #    ports:
-  #      - '8181:8181'
-  #    networks:
-  #      - test-network
-  #    environment:
-  #      - CATALOG_TYPE=jdbc
-  #      - CATALOG_WAREHOUSE=s3a://warehouse/
-  #      - CATALOG_IO-IMPL=org.apache.iceberg.aws.s3.S3FileIO
-  #      - CATALOG_JDBC_URI=jdbc:postgresql://postgres:5432/main_db
-  #      - CATALOG_JDBC_USER=admin
-  #      - CATALOG_JDBC_PASSWORD=admin
-  #      - AWS_ACCESS_KEY_ID=minio
-  #      - AWS_SECRET_ACCESS_KEY=minio123
-  #      - AWS_REGION=us-east-1
-  #      - CATALOG_S3_ENDPOINT=http://minio:9000
-  #      - CATALOG_S3_PATH-STYLE-ACCESS=true
-  #    depends_on:
-  #      - postgres
-  #      - minio
 
   # Spark
   spark-master:
-    image: apache/spark:3.5.1-scala2.12-java17-python3-r-ubuntu
+    image: custom-spark-governance:latest
     container_name: spark-master
+    build:
+      context: .
+      dockerfile: Dockerfile_spark_custom
     environment:
-      - PYTHONPATH=/opt/spark
+      - PYTHONPATH=/app
       - AWS_REGION=us-east-1
     ports:
       - '8080:8080'
@@ -98,16 +77,18 @@ services:
       "
 
   spark-worker:
-    image: apache/spark:3.5.1-scala2.12-java17-python3-r-ubuntu
+    image: custom-spark-governance:latest
     container_name: spark-worker
     environment:
-      - PYTHONPATH=/opt/spark
+      - PYTHONPATH=/app
       - AWS_REGION=us-east-1
     networks:
       - test-network
     volumes:
       - .:/app
     user: root
+    depends_on:
+      - spark-master
     command: >
       /bin/bash -c "
       pip install --no-cache-dir -r /app/requirements.txt &&

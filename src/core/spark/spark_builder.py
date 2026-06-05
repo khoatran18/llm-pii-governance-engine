@@ -12,11 +12,11 @@ PACKAGES = [
 def get_base_spark(app_name: str):
     return SparkSession.builder.appName(app_name)
 
-def get_spark_iceberg_rest(app_name: str):
-    config = load_config()
+def get_spark_iceberg_rest(config: dict):
     spark_cfg = config.get("spark", {})
     minio_cfg = config.get("storage", {}).get("minio", {})
     catalog_name = spark_cfg["iceberg_catalog_name"]
+    app_name = spark_cfg["load_job_name"]
 
     spark = (get_base_spark(app_name)
             .master(spark_cfg["master_url"])
@@ -41,13 +41,13 @@ def get_spark_iceberg_rest(app_name: str):
     return spark.getOrCreate()
 
 
-def get_spark_iceberg_jdbc(app_name: str):
-    config = load_config()
+def get_spark_iceberg_jdbc(config: dict):
     spark_cfg = config.get("spark", {})
     minio_cfg = config.get("storage", {}).get("minio", {})
 
     postgres_cfg = config.get("database", {}).get("postgres", {})
     catalog_name = spark_cfg["iceberg_catalog_name"]
+    app_name = spark_cfg["load_job_name"]
 
     spark = (get_base_spark(app_name)
                     .master(spark_cfg["master_url"])

@@ -4,16 +4,15 @@ from pathlib import Path
 
 from src.config.loader import load_config
 from src.config.logging import setup_logging
-from src.core.spark.spark_builder import get_spark_iceberg_rest, get_spark_iceberg_jdbc
+from src.core.spark.spark_builder import get_spark_iceberg_jdbc
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
-def ingest_single_csv_to_iceberg(spark, csv_path: str):
+def ingest_single_csv_to_iceberg(spark, config, csv_path: str):
     logger.info(
         f"Ingesting CSV file: {csv_path} ..."
     )
-    config = load_config()
 
     # Check if the file exists
     path_obj = Path(csv_path)
@@ -42,10 +41,6 @@ def ingest_single_csv_to_iceberg(spark, csv_path: str):
         spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {catalog_name}.{db_name}")
 
         # Write data to Iceberg table
-        # df.write \
-        #     .format("iceberg") \
-        #     .mode("overwrite") \
-        #     .save(full_table_path)
         df.write \
             .format("iceberg") \
             .mode("overwrite") \
@@ -60,7 +55,7 @@ def ingest_single_csv_to_iceberg(spark, csv_path: str):
 def dynamic_ingestion():
     logger.info("Starting dynamic ingestion job...")
     config = load_config()
-    spark = get_spark_iceberg_jdbc("Dynamic_CSV_to_Iceberg_JDBC_Job")
+    spark = get_spark_iceberg_jdbc(config)
 
     csv_folder = f"{config['spark']['csv_folder']}"
     all_csv_files = glob.glob(csv_folder)
@@ -71,7 +66,7 @@ def dynamic_ingestion():
     else:
         logger.info(f"Found {len(all_csv_files)} CSV files to ingest.")
         for csv_file in all_csv_files:
-            ingest_single_csv_to_iceberg(spark, csv_file)
+            ingest_single_csv_to_iceberg(spark, config, csv_file)
 
         print("Dynamic ingestion job completed successfully.")
 
