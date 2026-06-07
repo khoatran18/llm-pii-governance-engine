@@ -1,0 +1,72 @@
+# Call Trino or Spark to get schema and sample data
+import logging
+from typing import List, Dict, Any
+from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
+
+from src.config.logging import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
+class IcebergTableSampler:
+    def __init__(self, spark: SparkSession):
+        self.spark = spark
+
+    def extract_table_schema_and_sampler(self, table_fqn: str, sample_size: int = 30):
+        """
+        Retrieve the schema and sample data for a given Iceberg table.
+
+        :param table_fqn: Fully Qualified Name of Iceberg table (Eg: 'iceberg.db.fact_user_profiles')
+        :param sample_size: Size of sample data to extract (Default: 30)
+        :return: Return list of dicts containing schema and sample data for each column.
+                 [
+                    {
+                        "column_name": "c01",
+                        "data_type": "string",
+                        "sample_data": ["0912345678", "0987654321", ...]
+                    },
+                    ...
+                 ]
+        """
+        try:
+            logger.info(f"Extracting schema and sample data for table: {table_fqn} with sample size: {sample_size} ...")
+            df = self.spark.read.format("iceberg").load(table_fqn)
+            spark_schema = df.schema
+
+            sample_df = df.sample(withReplacement=False, fraction=sample_size / df.count()).limit(sample_size * 3)
+            extracted_columns_metadata = []
+
+            # Extract schema and sample data for each column
+            for field in spark_schema.fields:
+                col_name = field.name
+                data_type = str(field.dataType).lower()
+
+                col_samples_df = (
+                    sample_df.select(col_name)
+                    .filter(F.col(col_name).isNotNull)
+                )
+                if data_type == "string":
+                    col_samples_df = col_samples_df.filter((F.trim(F.col(col_name)) != "") | (F.col(col_name) == None))
+                raw_rows = col_samples_df.limit(sample_size).collect()
+
+                # Convert Spark row objects to Python data
+                clean_sample_list = [str(row[col_name]) for row in raw_rows]
+
+                column_payload = {
+                    "column_name": col_name,
+                    "data_type": data_type,
+                    "sample_data": clean_sample_list
+                }
+
+                extracted_columns_metadata.append(column_payload)
+            logger.info(f"Schema and sample data extracted for table: {table_fqn}")
+            return extracted_columns_metadata
+        except Exception as e:
+            logger.error(f"Error extracting schema and sample data for table: {table_fqn}", exc_info=True)
+            raise e
+
+
+
+
+

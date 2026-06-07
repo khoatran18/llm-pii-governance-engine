@@ -57,7 +57,7 @@ class PostgresClient:
         try:
             with self.engine.connect() as conn:
                 result = conn.execute(text(sql_script), params)
-            return [dict(row._mappint) for row in result]
+            return [dict(row) for row in result.mappings()]
         except SQLAlchemyError as e:
             logger.error(f"Error executing SQL script: {e}")
             return []

@@ -1,1 +1,0 @@
-# Call Trino or Spark to get schema and sample data
