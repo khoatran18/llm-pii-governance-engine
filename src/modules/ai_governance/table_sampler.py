@@ -1,10 +1,13 @@
 # Call Trino or Spark to get schema and sample data
 import logging
+import os
 from typing import List, Dict, Any
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as F
 
+from src.config.loader import load_config
 from src.config.logging import setup_logging
+from src.core.spark.spark_builder import get_spark_iceberg_jdbc
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -34,7 +37,7 @@ class IcebergTableSampler:
             df = self.spark.read.format("iceberg").load(table_fqn)
             spark_schema = df.schema
 
-            sample_df = df.sample(withReplacement=False, fraction=sample_size / df.count()).limit(sample_size * 3)
+            sample_df = df.sample(withReplacement=False, fraction=sample_size * 5 / df.count()).limit(sample_size * 3)
             extracted_columns_metadata = []
 
             # Extract schema and sample data for each column
@@ -44,7 +47,7 @@ class IcebergTableSampler:
 
                 col_samples_df = (
                     sample_df.select(col_name)
-                    .filter(F.col(col_name).isNotNull)
+                    .filter(F.col(col_name).isNotNull())
                 )
                 if data_type == "string":
                     col_samples_df = col_samples_df.filter((F.trim(F.col(col_name)) != "") | (F.col(col_name) == None))
@@ -67,6 +70,20 @@ class IcebergTableSampler:
             raise e
 
 
+if __name__ == "__main__":
+    os.environ["AWS_REGION"] = "us-east-1"
+    config = load_config()
+    # Check /etc/hosts to see if the host is in there: 127.0.0.1 minio postgres spark-master
+    spark = get_spark_iceberg_jdbc(config)
 
+    catalog_name = config["spark"]["iceberg_catalog_name"]
+    db_name = config["spark"]["iceberg_db_name"]
+    full_table_path = f"{config['spark']['iceberg_catalog_name']}.{db_name}.citizen_info"
+
+    sampler = IcebergTableSampler(spark)
+    sample_data = sampler.extract_table_schema_and_sampler(full_table_path, sample_size=10)
+
+    print("Sample Data:")
+    print(sample_data)
 
 
