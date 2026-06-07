@@ -7,7 +7,7 @@ from src.core.dtos.enums import (
     MaskingRule,
     SensitiveTag,
     SensitivityLevel,
-    UserRole, DetectionTypeLLMInput, RegexStatus,
+    UserRole, RegexStatus,
 )
 
 # For table metadata
@@ -26,7 +26,6 @@ class ColumnMetadata(BaseModel):
     sensitivity_level: SensitivityLevel = Field(..., description="Sensitivity level of the column")
     confidence_level: float = Field(..., description="Confidence level of the column")
     detection_method: DetectionMethod = Field(..., description="Detection method used to detect the column")
-    # masking_rule: MaskingRule = Field(..., description="Masking rule used to mask the column")
     updated_at: Optional[datetime] = None
 
 class RoleMetadata(BaseModel):
@@ -80,10 +79,6 @@ class TableLLMScanRequest(BaseModel):
         default_factory=list,
         description="Anchor points. Columns already 100% successfully classified by Regex."
     )
-    collision_columns: List[ColumnScanInput] = Field(
-        default_factory=list,
-        description="Columns where Regex found multiple matching patterns. Requires AI to resolve conflict."
-    )
     undetermined_columns: List[ColumnScanInput] = Field(
         default_factory=list,
         description="Columns where Regex completely failed. Requires AI to perform 100% semantic deduction."
@@ -110,5 +105,12 @@ class MaskingPolicy(BaseModel):
     column_name: str = Field(..., description="Column name to be masked")
     masking_rule: MaskingRule = Field(..., description="Masking rule to be applied")
 
-
-
+# For final output each column
+class ColumnScanResult(BaseModel):
+    column_name: str = Field(..., description="Column name")
+    is_pii: bool = Field(..., description="True if the column contains PII")
+    sensitivity_tag: SensitiveTag = Field(..., description="Suggested PII tag")
+    sensitivity_level: SensitivityLevel = Field(..., description="Sensitivty level of the column")
+    confidence_score: float = Field(..., description="Confidence score of the detection")
+    detection_method: DetectionMethod = Field(..., description="Detection method used")
+    reason: str = Field(..., description="Reason for the detection")

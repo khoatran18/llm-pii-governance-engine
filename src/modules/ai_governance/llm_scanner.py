@@ -18,6 +18,10 @@ def parse_llm_response(raw_text: str) -> TableLLMScanResponse:
 
     clean_text = raw_text.strip()
 
+    logger.info("\n" + "=" * 40 + " [RAW LLM RESPONSE] " + "=" * 40)
+    logger.info(clean_text)
+    logger.info("=" * 100 + "\n")
+
     # If the response starts with ```json, remove the first line and the last line
     if clean_text.startswith("```"):
         # Remove the first line if it's just ```json'
@@ -46,14 +50,12 @@ class LLMTableScanner:
         self.max_retries = max_retries
 
     def scan_table(self, request: TableLLMScanRequest):
-        determined_json = json.dumps([c.model_dump() for c in request.determined_columns])
-        collision_json = json.dumps([c.model_dump() for c in request.collision_columns])
-        undetermined_json = json.dumps([c.model_dump() for c in request.undetermined_columns])
+        determined_json = json.dumps([c.model_dump() for c in request.determined_columns], ensure_ascii=False)
+        undetermined_json = json.dumps([c.model_dump() for c in request.undetermined_columns], ensure_ascii=False)
 
         user_prompt = GovernanceLLMPrompts.BATCH_TABLE_SCAN_PROMPT.format(
             table_name=request.table_name,
             determined_json=determined_json,
-            collision_json=collision_json,
             undetermined_json=undetermined_json
         )
 

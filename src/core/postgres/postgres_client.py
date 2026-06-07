@@ -1,5 +1,8 @@
 import logging
 import os
+from pathlib import Path
+
+from numba.core.ir import Raise
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -16,6 +19,24 @@ class PostgresClient:
 
         self.connection_string = f"postgresql://{postgres_cfg['user']}:{postgres_cfg['password']}@{postgres_cfg['host']}:{postgres_cfg['port']}/{postgres_cfg['database']}"
         self.engine = None
+        self._is_initialized = False
+
+    def _initialize_db(self):
+        init_sql_file = Path(__file__).parent / "init_db.sql"
+        if not init_sql_file.exists():
+            logger.error(f"Critical Error: Init SQL file not found at {init_sql_file}")
+            raise FileNotFoundError(f"Missing required initialization script: {init_sql_file}")
+        try:
+            with open(init_sql_file, "r", encoding="utf-8") as f:
+                sql_script = f.read()
+            with self.engine.connect() as conn:
+                with conn.begin():
+                    conn.execute(text(sql_script), {})
+            self._is_initialized = True
+            logger.info("SQL script executed successfully.")
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
+            raise e
 
     def connect(self):
         self.engine = create_engine(
@@ -24,6 +45,8 @@ class PostgresClient:
             max_overflow=10,
             pool_pre_ping=True,
         )
+        if not self._is_initialized:
+            self._initialize_db()
         return self.engine
 
     def execute_non_query(self, sql_script: str, params: dict = {}) -> bool:
@@ -44,6 +67,8 @@ class PostgresClient:
         except SQLAlchemyError as e:
             logger.error(f"Error executing SQL script: {e}")
             return False
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
 
     def execute_query(self, sql_script: str, params: dict = {}) -> list:
         """
@@ -60,6 +85,9 @@ class PostgresClient:
             return [dict(row) for row in result.mappings()]
         except SQLAlchemyError as e:
             logger.error(f"Error executing SQL script: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
             return []
 
     def check_exist(self, sql_script: str, params: dict = {}):

@@ -51,7 +51,7 @@ def calculate_regex_confidence_score(
     if not sample_data:
         return {
             "column_name": column_name,
-            "regex_status": "UNDETERMINED",
+            "regex_status": RegexStatus.UNDETERMINED,
             "regex_candidates": [],
             "raw_score": {}
         }
@@ -79,7 +79,6 @@ def calculate_regex_confidence_score(
 
     # Check Confidence
     high_confidence_tags = [(tag, score) for tag, score in raw_scores.items() if score >= threshold]
-    low_confidence_tags = [(tag, score) for tag, score in raw_scores.items() if score < threshold]
 
     final_candidates = []
     status = RegexStatus.UNDETERMINED
@@ -91,20 +90,14 @@ def calculate_regex_confidence_score(
         status = RegexStatus.SUCCESS
         final_candidates.append(best_tag)
     else:
-        # If no high-confidence tags, check for low-confidence tags
-        all_detected_tags = [(tag, score) for tag, score in raw_scores.items() if score > 0]
-        if all_detected_tags:
-            status = RegexStatus.COLLISION if len(all_detected_tags) > 1 else RegexStatus.UNDETERMINED
-            final_candidates = [tag for tag, _ in all_detected_tags]
-        else:
-            status = RegexStatus.UNDETERMINED
-            final_candidates = []
+        status = RegexStatus.UNDETERMINED
+        final_candidates = [tag for tag, score in sorted(raw_scores.items(), key=lambda x:x[1], reverse=True) if score > 0.0]
 
     return {
         "column_name": column_name,
         "regex_status": status.value,
         "regex_candidates": final_candidates,
-        "raw_score": raw_scores
+        "raw_scores": raw_scores
     }
 
 

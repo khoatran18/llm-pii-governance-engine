@@ -29,7 +29,7 @@ def ingest_single_csv_to_iceberg(spark, config, csv_path: str):
         df = spark.read \
                 .format("csv") \
                 .option("header", True) \
-                .option("inferSchema", True) \
+                .option("inferSchema", False) \
                 .load(csv_path)
 
         # Get full table path

@@ -5,7 +5,7 @@ class SensitivityLevel(str, Enum):
     MEDIUM = "MEDIUM"
     LOW = "LOW"
     NONE = "NONE"
-    AMBIGUOUS = "AMBIGUOUS"
+    # AMBIGUOUS = "AMBIGUOUS"
 
 class SensitiveTag(str, Enum):
     RESIDENT_ID = "RESIDENT_ID"
@@ -19,7 +19,7 @@ class SensitiveTag(str, Enum):
     DOB = "DOB"
     WORKPLACE = "WORKPLACE"
     NONE = "NONE"
-    AMBIGUOUS = "AMBIGUOUS"
+    # AMBIGUOUS = "AMBIGUOUS"
 
     @property
     def sensitivity_level(self) -> SensitivityLevel:
@@ -39,7 +39,7 @@ class SensitiveTag(str, Enum):
             SensitiveTag.WORKPLACE: SensitivityLevel.LOW,
             # NONE & SPECIAL
             SensitiveTag.NONE: SensitivityLevel.NONE,
-            SensitiveTag.AMBIGUOUS: SensitivityLevel.NONE
+            # SensitiveTag.AMBIGUOUS: SensitivityLevel.NONE
         }
         return tag_sensitivity_map.get(self, SensitivityLevel.NONE)
 
@@ -56,7 +56,7 @@ class SensitiveTag(str, Enum):
             SensitiveTag.ADDRESS: 2,
             SensitiveTag.DOB: 1,
             SensitiveTag.WORKPLACE: 0,
-            SensitiveTag.AMBIGUOUS: -1,
+            # SensitiveTag.AMBIGUOUS: -1,
             SensitiveTag.NONE: -2
         }
         return weights.get(self, -2)
@@ -85,10 +85,14 @@ class UserRole(str, Enum):
 
 class RegexStatus(str, Enum):
     SUCCESS = "SUCCESS"
-    COLLISION = "COLLISION"
-    UNDETERMINED = "UNDETERMINED"
+    UNDETERMINED = "UNDETERMINED" # All tags detected have low confidence score
 
-
+class DetectionReason(str, Enum):
+    REGEX = "Detected PII fully by Regex"
+    LLM = "Detected PII fully by LLM"
+    AMBIGUOUS_PII = "Detected PII by LLM and Regex, finally chosen by Regex"
+    AMBIGUOUS_NONE = "Regex detected PII but LLM did not detect any"
+    FULLY_NONE = "No PII detected by Regex or LLM"
 
 
 

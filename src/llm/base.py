@@ -4,7 +4,6 @@ class BaseLLMProvider(ABC):
     def __init__(self, config: dict):
         self.config = config
         self.llm_config = config.get("llm", {})
-        self.api_key = self.llm_config["openapi_api_key"]
         self.model = self.llm_config["model"]
         self.temperature = self.llm_config["temperature"]
         self.max_tokens = self.llm_config["max_tokens"]

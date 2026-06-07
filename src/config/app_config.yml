@@ -12,7 +12,7 @@ database:
     port: 5432
     user: "admin"
     password: ${POSTGRES_PASSWORD}
-    database_name: "main_db"
+    database: "main_db"
     uri: jdbc:postgresql://postgres:5432/main_db
 
 storage:
@@ -27,6 +27,7 @@ storage:
 # 2. CẤU HÌNH CÁC ENGINE TÍNH TOÁN (COMPUTE ENGINES)
 # =====================================================================
 spark:
+  master_container_name: "spark-master"
   master_url: "spark://spark-master:7077"
   app_name: "Lakehouse_Ingestion_Job"
   iceberg_catalog_name: "iceberg"
@@ -46,11 +47,11 @@ trino:
 # 3. CẤU HÌNH DỊCH VỤ DÙNG CHUNG LLM (SHARED SERVICE)
 # =====================================================================
 llm:
-  provider: "ollama"
-  model: "llama3"
+  provider: "deepseek"
+  model: "deepseek-chat"
   temperature: 0.0
-  max_tokens: 256
-  retry_count: 3
+  max_tokens: 2048
+  max_retries: 3
   openai_api_key: "${OPENAPI_API_KEY}"
   deepseek_api_key: "${DEEPSEEK_API_KEY}"
 
@@ -58,6 +59,9 @@ llm:
 # 4. CẤU HÌNH LUẬT QUẢN TRỊ VÀ BẢO MẬT (GOVERNANCE & POLICY)
 # =====================================================================
 governance:
+  confidence_threshold: 0.70
+  regex_sample_size: 200
+  llm_sample_size: 10
   # Các phương thức AI quét dữ liệu (chạy từ trái qua phải)
   scanning_pipeline:
     - "regex"

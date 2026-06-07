@@ -34,7 +34,7 @@ class IcebergTableSampler:
         """
         try:
             logger.info(f"Extracting schema and sample data for table: {table_fqn} with sample size: {sample_size} ...")
-            df = self.spark.read.format("iceberg").load(table_fqn)
+            df = self.spark.read.format("iceberg").option("inferSchema", "false").load(table_fqn)
             spark_schema = df.schema
 
             sample_df = df.sample(withReplacement=False, fraction=sample_size * 5 / df.count()).limit(sample_size * 3)
@@ -48,9 +48,8 @@ class IcebergTableSampler:
                 col_samples_df = (
                     sample_df.select(col_name)
                     .filter(F.col(col_name).isNotNull())
+                    .filter((F.trim(F.col(col_name)) != "") | (F.col(col_name) == None))
                 )
-                if data_type == "string":
-                    col_samples_df = col_samples_df.filter((F.trim(F.col(col_name)) != "") | (F.col(col_name) == None))
                 raw_rows = col_samples_df.limit(sample_size).collect()
 
                 # Convert Spark row objects to Python data
@@ -58,7 +57,6 @@ class IcebergTableSampler:
 
                 column_payload = {
                     "column_name": col_name,
-                    "data_type": data_type,
                     "sample_data": clean_sample_list
                 }
 
@@ -78,7 +76,7 @@ if __name__ == "__main__":
 
     catalog_name = config["spark"]["iceberg_catalog_name"]
     db_name = config["spark"]["iceberg_db_name"]
-    full_table_path = f"{config['spark']['iceberg_catalog_name']}.{db_name}.citizen_info"
+    full_table_path = f"{config['spark']['iceberg_catalog_name']}.{db_name}.hr_employees"
 
     sampler = IcebergTableSampler(spark)
     sample_data = sampler.extract_table_schema_and_sampler(full_table_path, sample_size=10)

@@ -1,11 +1,12 @@
 from openai import OpenAI
 from openai.types.chat import ChatCompletionUserMessageParam
 
-from base import BaseLLMProvider
+from src.llm.base import BaseLLMProvider
 
 class OpenAIProvider(BaseLLMProvider):
     def __init__(self, config):
         super().__init__(config)
+        self.api_key = config["llm"]["openai_api_key"]
         self.client = OpenAI(api_key=self.api_key)
 
     def get_response(self, prompt: str, **kwargs) -> str:
@@ -23,6 +24,7 @@ class OpenAIProvider(BaseLLMProvider):
 class DeepSeekProvider(BaseLLMProvider):
     def __init__(self, config, base_url: str = "https://api.deepseek.com/v1"):
         super().__init__(config)
+        self.api_key = config["llm"]["deepseek_api_key"]
         self.base_url = base_url
         self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
 
