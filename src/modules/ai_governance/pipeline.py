@@ -81,9 +81,6 @@ class AIGovernancePipeline:
                 confidence_score_threshold=self.confidence_threshold,
             )
 
-            # Update table metadata
-            self.repo.register_table_to_metadata_store()
-
             # Write to database
             self.repo.save_column_metadata(
                 table_id=table_id,

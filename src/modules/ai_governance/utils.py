@@ -12,6 +12,8 @@ from src.core.dtos.models import TableLLMScanRequest, ColumnScanInput, SingleCol
 
 setup_logging()
 logger = logging.getLogger(__name__)
+llm_logger = logging.getLogger("llm_io")
+regex_logger = logging.getLogger("regex_output")
 
 def get_all_table_name(config):
     """
@@ -74,6 +76,7 @@ def build_llm_request_payload(
         col_input = ColumnScanInput(
             column_name=col["column_name"],
             regex_candidates=col["regex_candidates"],
+            raw_scores=col["raw_scores"],
             sample_data=col["sample_data"],
             regex_status=col["regex_status"],
         )
@@ -89,6 +92,11 @@ def build_llm_request_payload(
         undetermined_columns=undetermined_list,
     )
 
+def regex_reason(all_detected_tags: list):
+    regex_tag_string = ""
+    if all_detected_tags:
+        regex_tag_string = " - Regex tags detection: " + ", ".join([f"{tag}:{score}" for tag, score in all_detected_tags])
+    return regex_tag_string
 
 
 def arbitrate_hybrid_results(
@@ -103,6 +111,7 @@ def arbitrate_hybrid_results(
     regex_candidates = regex_info["regex_candidates"]
     raw_scores = regex_info["raw_scores"]
     regex_status = regex_info["regex_status"]
+    all_detected_tags = regex_info["all_detected_tags"]
 
     # Get the best tag from Regex
     best_regex_tag = regex_candidates[0] if regex_candidates else SensitiveTag.NONE
@@ -117,6 +126,7 @@ def arbitrate_hybrid_results(
     final_method = DetectionMethod.REGEX
     final_reason = DetectionReason.FULLY_NONE
     final_is_pii = False
+    llm_reason = ""
 
     # If Regex returns a PII tag with a confidence score high enough, use it
     if regex_status == RegexStatus.SUCCESS.value:
@@ -128,18 +138,22 @@ def arbitrate_hybrid_results(
     else:
         # Regex returns PII tag(s) with low confidence score, use LLM output if available
         if best_regex_tag != SensitiveTag.NONE:
+            # LLM returns not PII, returns no PII tag
             if not llm_is_pii:
                 final_tag = SensitiveTag.NONE
-                final_score = 1 - best_regex_score
+                final_score = llm_output.confidence_score
                 final_method = DetectionMethod.HYBRID
                 final_reason = DetectionReason.AMBIGUOUS_NONE
                 final_is_pii = False
+                llm_reason = " - LLM reason: " + llm_output.reason
+            # If LLM returns PII, use Regex
             else:
                 final_tag = best_regex_tag
                 final_score = best_regex_score
                 final_method = DetectionMethod.HYBRID
                 final_reason = DetectionReason.AMBIGUOUS_PII
                 final_is_pii = True
+                llm_reason = " - LLM reason: " + llm_output.reason
         # Regex returns no PII tags
         else:
             if llm_is_pii and llm_tag != SensitiveTag.NONE:
@@ -148,13 +162,16 @@ def arbitrate_hybrid_results(
                 final_method = DetectionMethod.LLM
                 final_reason = DetectionReason.LLM
                 final_is_pii = True
+                llm_reason = " - LLM reason: " + llm_output.reason
             else:
                 final_tag = SensitiveTag.NONE
                 final_score = 1.0
                 final_method = DetectionMethod.HYBRID
                 final_reason = DetectionReason.FULLY_NONE
                 final_is_pii = False
+                llm_reason = " - LLM reason: " + llm_output.reason
 
+    final_reason = final_reason + regex_reason(all_detected_tags) + llm_reason
     final_level = final_tag.sensitivity_level
 
     return ColumnScanResult(

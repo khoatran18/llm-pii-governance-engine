@@ -42,6 +42,7 @@ class GovernanceRepository:
                 sensitivity_level = EXCLUDED.sensitivity_level,
                 detection_method = EXCLUDED.detection_method,
                 confidence_score = EXCLUDED.confidence_score,
+                reason = EXCLUDED.reason,
                 updated_at = CURRENT_TIMESTAMP;
         """
         self.db.execute_non_query(save_upsert_column, {

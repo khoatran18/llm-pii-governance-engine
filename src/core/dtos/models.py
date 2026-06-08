@@ -67,6 +67,10 @@ class ColumnScanInput(BaseModel):
         default_factory=list,
         description="List of PII tags detected by Regex. Contains 1 item if SUCCESS, multiple if COLLISION, empty [] if UNDETERMINED"
     )
+    raw_scores: dict = Field(
+        default_factory=list,
+        description="Raw scores for each PII tag detected by Regex. Keys are PII tags, values are confidence scores"
+    )
     sample_data: List[str] = Field(
         default_factory=list,
         description="Top 20-30 raw sample rows extracted from this column"

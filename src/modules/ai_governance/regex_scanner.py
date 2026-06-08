@@ -1,7 +1,13 @@
+import logging
 import re
 from typing import List, Any, Dict
 
+from src.config.logging import setup_logging
 from src.core.dtos.enums import SensitiveTag, RegexStatus
+
+setup_logging()
+logger = logging.getLogger(__name__)
+regex_logger = logging.getLogger("regex_output")
 
 class RegexPattern:
     RESIDENT_ID = r"^0\d{11}%"
@@ -92,11 +98,21 @@ def calculate_regex_confidence_score(
     else:
         status = RegexStatus.UNDETERMINED
         final_candidates = [tag for tag, score in sorted(raw_scores.items(), key=lambda x:x[1], reverse=True) if score > 0.0]
+    all_detected_tags = [(tag, score) for tag, score in raw_scores.items() if score > 0.0]
+
+    regex_logger.info("----------------------------------------")
+    regex_logger.info(f"Regex scan for column {column_name}:")
+    regex_logger.info(f"Regex status: {status.value}")
+    regex_logger.info(f"All detected tags: {all_detected_tags}")
+    regex_logger.info(f"Regex candidates: {final_candidates}")
+    regex_logger.info(f"Raw scores: {raw_scores}")
+    regex_logger.info(f"----------------------------------------")
 
     return {
         "column_name": column_name,
         "regex_status": status.value,
         "regex_candidates": final_candidates,
+        "all_detected_tags": all_detected_tags,
         "raw_scores": raw_scores
     }
 

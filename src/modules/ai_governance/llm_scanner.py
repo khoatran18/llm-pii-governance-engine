@@ -10,17 +10,18 @@ from src.llm.prompts import GovernanceLLMPrompts
 
 setup_logging()
 logger = logging.getLogger(__name__)
+llm_logger = logging.getLogger("llm_io")
 
 def parse_llm_response(raw_text: str) -> TableLLMScanResponse:
     if not raw_text:
-        logger.error("LLM response is empty")
+        llm_logger.error("LLM response is empty")
         raise ValueError("LLM response is empty")
 
     clean_text = raw_text.strip()
 
-    logger.info("\n" + "=" * 40 + " [RAW LLM RESPONSE] " + "=" * 40)
-    logger.info(clean_text)
-    logger.info("=" * 100 + "\n")
+    llm_logger.info("\n" + "=" * 40 + " [RAW LLM RESPONSE] " + "=" * 40)
+    llm_logger.info(clean_text)
+    llm_logger.info("=" * 100 + "\n")
 
     # If the response starts with ```json, remove the first line and the last line
     if clean_text.startswith("```"):
@@ -38,10 +39,10 @@ def parse_llm_response(raw_text: str) -> TableLLMScanResponse:
         parsed_dict = json.loads(clean_text)
         return TableLLMScanResponse(**parsed_dict)
     except json.JSONDecodeError as e:
-        logger.error(f"Error parsing LLM response: {e}")
+        llm_logger.error(f"Error parsing LLM response: {e}")
         raise ValueError("Error parsing LLM response")
     except Exception as e:
-        logger.error(f"Unexpected error parsing LLM response: {e}")
+        llm_logger.error(f"Unexpected error parsing LLM response: {e}")
         raise e
 
 class LLMTableScanner:
@@ -63,14 +64,14 @@ class LLMTableScanner:
 
         for attempt in range(1, self.max_retries + 1):
             try:
-                logger.info(f"LLM Scan Attempt {attempt}...")
+                llm_logger.info(f"LLM Scan Attempt {attempt}...")
                 response_llm = self.llm_provider.get_response(full_prompt)
                 validated_response = parse_llm_response(response_llm)
-                logger.info("LLM Scan Successful!")
+                llm_logger.info("LLM Scan Successful!")
                 return validated_response
 
             except Exception as e:
-                logger.error(f"LLM Scan Attempt {attempt} Failed: {e}")
+                llm_logger.error(f"LLM Scan Attempt {attempt} Failed: {e}")
                 if attempt == self.max_retries:
                     raise e
 
