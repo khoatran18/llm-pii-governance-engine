@@ -62,6 +62,10 @@ class LLMTableScanner:
 
         full_prompt = f"System: {GovernanceLLMPrompts.SYSTEM_ROLE}\n\nUser: {user_prompt}"
 
+        llm_logger.info("\n" + "=" * 40 + " [LLM REQUEST] " + "=" * 40)
+        llm_logger.info(full_prompt)
+        llm_logger.info("=" * 100 + "\n")
+
         for attempt in range(1, self.max_retries + 1):
             try:
                 llm_logger.info(f"LLM Scan Attempt {attempt}...")

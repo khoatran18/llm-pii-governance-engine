@@ -80,7 +80,7 @@ def calculate_regex_confidence_score(
                 tag_counts[tag] += 1
 
     raw_scores = {
-        tag: count / total_samples for tag, count in tag_counts.items()
+        tag: count / total_samples for tag, count in tag_counts.items() if count > 0
     }
 
     # Check Confidence
@@ -97,8 +97,8 @@ def calculate_regex_confidence_score(
         final_candidates.append(best_tag)
     else:
         status = RegexStatus.UNDETERMINED
-        final_candidates = [tag for tag, score in sorted(raw_scores.items(), key=lambda x:x[1], reverse=True) if score > 0.0]
-    all_detected_tags = [(tag, score) for tag, score in raw_scores.items() if score > 0.0]
+        final_candidates = [tag for tag, score in sorted(raw_scores.items(), key=lambda x:x[1], reverse=True)]
+    all_detected_tags = [(tag, score) for tag, score in raw_scores.items()]
 
     regex_logger.info("----------------------------------------")
     regex_logger.info(f"Regex scan for column {column_name}:")

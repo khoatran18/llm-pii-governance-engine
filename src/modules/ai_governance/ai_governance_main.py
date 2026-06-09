@@ -72,7 +72,7 @@ def main(target_table: str = ""):
 
 
 if __name__ == "__main__":
-    main()
+    main(target_table="administrative_records")
 
 
 

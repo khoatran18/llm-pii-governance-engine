@@ -1,4 +1,3 @@
-# Pipeline scanner and merge
 import logging
 
 from src.config.logging import setup_logging
@@ -7,9 +6,9 @@ from src.core.postgres.postgres_client import PostgresClient
 from src.llm.base import BaseLLMProvider
 from src.modules.ai_governance.llm_scanner import LLMTableScanner
 from src.modules.ai_governance.regex_scanner import calculate_regex_confidence_score
-from src.modules.ai_governance.repository import GovernanceRepository
+from src.modules.ai_governance.governance_repository import GovernanceRepository
 from src.modules.ai_governance.table_sampler import IcebergTableSampler
-from src.modules.ai_governance.utils import build_llm_request_payload, arbitrate_hybrid_results
+from src.modules.ai_governance.utils import build_llm_request_payload, arbitrate_hybrid_results, llm_logger
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -62,22 +61,28 @@ class AIGovernancePipeline:
         # 3. Create payload to LLM
         logger.info("Creating payload to LLM ...")
         llm_request_payload = build_llm_request_payload(table_name=table_name, regex_outputs=regex_processed_output)
+
+        llm_logger.info("\n" + "=" * 40 + " [RAW LLM PAYLOAD] " + "=" * 40)
+        llm_logger.info(llm_request_payload.model_dump_json(indent=2))
+        llm_logger.info("=" * 100 + "\n")
+
         llm_response = self.llm_scanner.scan_table(llm_request_payload)
 
         if not llm_response or not llm_response.columns:
             logger.error("LLM response is empty or missing columns")
             raise RuntimeError("LLM response is empty or missing columns")
 
+        llm_map_by_column = {col.column_name: col for col in llm_response.columns}
+
         # 4. Merge regex and LLM outputs
         logger.info("Merging regex and LLM outputs ...")
-        for llm_col in llm_response.columns:
-            col_name = llm_col.column_name
-            corresponding_regex = regex_map_by_column.get(col_name)
+        for col_name, corresponding_regex in regex_map_by_column.items():
+            corresponding_llm = llm_map_by_column.get(col_name)
 
             scan_result: ColumnScanResult = arbitrate_hybrid_results(
                 column_name=col_name,
                 regex_info=corresponding_regex,
-                llm_output=llm_col,
+                llm_output=corresponding_llm,
                 confidence_score_threshold=self.confidence_threshold,
             )
 

@@ -14,6 +14,7 @@ setup_logging()
 logger = logging.getLogger(__name__)
 llm_logger = logging.getLogger("llm_io")
 regex_logger = logging.getLogger("regex_output")
+test_logger = logging.getLogger("test")
 
 def get_all_table_name(config):
     """
@@ -118,8 +119,9 @@ def arbitrate_hybrid_results(
     best_regex_score = raw_scores.get(best_regex_tag, 0.0) if best_regex_tag != SensitiveTag.NONE else 0.0
 
     # Get tag from LLM output
-    llm_tag = llm_output.suggested_tag
-    llm_is_pii = llm_output.is_pii
+    if llm_output:
+        llm_tag = llm_output.suggested_tag
+        llm_is_pii = llm_output.is_pii
 
     final_tag = SensitiveTag.NONE
     final_score = 0.0
@@ -173,6 +175,9 @@ def arbitrate_hybrid_results(
 
     final_reason = final_reason + regex_reason(all_detected_tags) + llm_reason
     final_level = final_tag.sensitivity_level
+
+    test_logger.info("----------------------------------------")
+    test_logger.info(f"Column: {column_name}, Final Tag: {final_tag}, Final Score: {final_score}, Final Method: {final_method}, Final Reason: {final_reason}")
 
     return ColumnScanResult(
         column_name = column_name,

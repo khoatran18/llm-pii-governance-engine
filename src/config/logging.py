@@ -71,3 +71,23 @@ def setup_logging():
         regex_file_handler = logging.FileHandler(str(logs_dir / "regex.log"), mode="a", encoding="utf-8")
         regex_file_handler.setFormatter(formatter)
         regex_logger.addHandler(regex_file_handler)
+
+    # 7. For Policy Engine
+    policy_engine_logger = logging.getLogger("policy_engine")
+    policy_engine_logger.setLevel(log_level)
+    policy_engine_logger.propagate = True
+
+    if not policy_engine_logger.handlers:
+        policy_engine_file_handler = logging.FileHandler(str(logs_dir / "policy_engine.log"), mode="a", encoding="utf-8")
+        policy_engine_file_handler.setFormatter(formatter)
+        policy_engine_logger.addHandler(policy_engine_file_handler)
+
+    # 7. For Test
+    test_logger = logging.getLogger("test")
+    test_logger.setLevel(log_level)
+    test_logger.propagate = True
+
+    if not test_logger.handlers:
+        test_file_handler = logging.FileHandler(str(logs_dir / "test.log"), mode="a", encoding="utf-8")
+        test_file_handler.setFormatter(formatter)
+        test_logger.addHandler(test_file_handler)
