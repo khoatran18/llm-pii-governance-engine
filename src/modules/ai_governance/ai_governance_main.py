@@ -8,7 +8,6 @@ from src.modules.ai_governance.llm_scanner import LLMTableScanner
 from src.modules.ai_governance.table_sampler import IcebergTableSampler
 from src.modules.ai_governance.utils import get_table_fqn, get_all_table_fqn
 
-# Đảm bảo Python nhận diện đúng thư mục gốc src để import module không bị lỗi path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.config.loader import load_config

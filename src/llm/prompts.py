@@ -9,7 +9,7 @@ class GovernanceLLMPrompts:
     Your task is to analyze table metadata, column names, and sample data to accurately identify and tag Personally Identifiable Information (PII).
     """
 
-    BATCH_TABLE_SCAN_PROMPT = """
+    BATCH_TABLE_SCAN_PROMPT_V2 = """
         Analyze the Lakehouse table named [{table_name}] based on the provided structural schema and raw sample data partitioned into 2 semantic categories.
 
     =====================================================================
@@ -92,7 +92,7 @@ class GovernanceLLMPrompts:
     }}
     """
 
-    BATCH_TABLE_SCAN_PROMPT_V1 = """
+    BATCH_TABLE_SCAN_PROMPT = """
     Analyze the Lakehouse table named [{table_name}] based on the provided structural schema and raw sample data partitioned into 2 semantic categories.
 
     =====================================================================
@@ -175,9 +175,10 @@ class GovernanceLLMPrompts:
     [CRITICAL BUSINESS RULES FOR AI SEMANTIC DEDUCTION]
     1. Full-Table Context: Review Category 1 to perform a process of elimination on Category 2.
     2. Data Over Name Rule (Anti-Misleading): Column names can be highly misleading, obfuscated, or completely generic (e.g., 'c01', 'c03', 'hhd', 'val_02', 'm_val'). You MUST prioritize the semantic meaning and patterns of the actual sample data over the literal column name. If the column name says one thing but the data clearly represents another PII type, classify based on the DATA.
-    3. Mandatory Classification: For columns in Category 2, use your linguistic capability to deduce the single best-fitting PII tag from the allowed list. If the column is genuinely public data, return "NONE".
-    4. Target Isolation Principle: Your final JSON output MUST ONLY contain the columns listed in CATEGORY 2 (UNDETERMINED COLUMNS). Do not re-evaluate or include columns from CATEGORY 1 in the final output object.
-    5. Strict Format Validation Rule: Even if a column name strongly implies a PII type, if the actual sample data format does NOT match the expected pattern for that PII type, you MUST classify it as "NONE". Do not force-fit data into a PII tag just because the column name suggests it.
+    3. Conservative Classification: For columns in CATEGORY 2, default assumption is NONE unless sample data provides clear, unambiguous evidence of a PII type. Do NOT attempt to find a tag — let the data speak for itself. NONE is a valid and preferred outcome when evidence is weak or ambiguous.
+    4. Majority Vote Rule: If LESS THAN 60% of the sample data rows match the expected pattern of a PII type, you MUST return NONE — regardless of how strongly the column name implies that PII type. A partial match is treated as NO match.
+    5. Target Isolation Principle: Your final JSON output MUST ONLY contain the columns listed in CATEGORY 2 (UNDETERMINED COLUMNS). Do not re-evaluate or include columns from CATEGORY 1 in the final output object.
+    6. Strict Format Validation Rule: Even if a column name strongly implies a PII type, if the actual sample data format does NOT match the expected pattern for that PII type, you MUST classify it as "NONE". Do not force-fit data into a PII tag just because the column name suggests it.
    
     =====================================================================
     [CRITICAL CONSTRAINTS]
