@@ -95,11 +95,30 @@ services:
       /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
       "
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    networks:
+      - test-network
+    depends_on:
+      - postgres
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning/:/etc/grafana/provisioning/
+
 volumes:
   postgres_data:
     name: postgres_data
   minio_data:
     name: minio_data
+  grafana_data:
+    name: grafana_data
 
 networks:
   test-network:

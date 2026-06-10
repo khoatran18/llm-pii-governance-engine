@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS roles (
 -- 4. Bảng quản lý chính sách bảo mật động (Tuần 4)
 CREATE TABLE IF NOT EXISTS access_policies (
     policy_id SERIAL PRIMARY KEY,
-    role_name VARCHAR(50) REFERENCES roles(role_name) ON UPDATE CASCADE, -- Dùng thẳng role_name bản chất để khớp với cụm DML phía dưới    sensitivity_level VARCHAR(20) NOT NULL,       -- HIGH, MEDIUM, LOW
+    role_name VARCHAR(50) REFERENCES roles(role_name) ON UPDATE CASCADE,      -- HIGH, MEDIUM, LOW
     sensitivity_level VARCHAR(10) NOT NULL,
     masking_rule VARCHAR(50) NOT NULL,            -- HASH_MASK, REDACTED, NULLIFY, PARTIAL_MASK, CLEAR_TEXT
     UNIQUE (role_name, sensitivity_level)

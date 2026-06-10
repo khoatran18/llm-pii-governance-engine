@@ -1,0 +1,24 @@
+# Configuration file version
+apiVersion: 1
+
+datasources:
+ - name: Postgres
+   type: postgres
+   uid: postgres_uid
+   url: postgres:5432
+   user: admin
+   database: main_db
+   isDefault: true
+   jsonData:
+     database: main_db
+     sslmode: disable
+     maxOpenConns: 100
+     maxIdleConns: 100
+     maxIdleConnsAuto: true
+     connMaxLifetime: 14400
+     postgresVersion: 903
+     timescaledb: false
+   secureJsonData:
+     password: admin
+   version: 1
+   editable: true
