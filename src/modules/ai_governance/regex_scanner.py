@@ -3,46 +3,50 @@ import re
 from typing import List, Any, Dict
 
 from src.config.logging import setup_logging
-from src.core.dtos.enums import SensitiveTag, RegexStatus
+from src.core.dtos.enums import SensitivityTag, RegexStatus
 
 setup_logging()
 logger = logging.getLogger(__name__)
 regex_logger = logging.getLogger("regex_output")
 
 class RegexPattern:
-    RESIDENT_ID = r"^0\d{11}%"
+    RESIDENT_ID = r"^0\d{11}$"
 
     PHONE = r"^(03|05|07|08|09)\d{8}$"
 
     EMAIL = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
-    TAX_CODE = r"^0\d{11}$"
+    HEALTH_INSURANCE_ID = r"^[A-Z]{2}\d{13}$"
 
-    BANK_ACCOUNT = r"^\d{9,16}$"
+    # TAX_CODE = r"^0\d{11}$"
 
-def match_regex(value: str) -> List[SensitiveTag]:
+    # BANK_ACCOUNT = r"^\d{9,16}$"
+
+def match_regex(value: str) -> List[SensitivityTag]:
     """
     Return all matched tags.
     """
     if not value or not isinstance(value, str):
-        return [SensitiveTag.NONE]
+        return [SensitivityTag.NONE]
 
     value = value.strip()
     matched_tags = []
 
     if re.match(RegexPattern.RESIDENT_ID, value):
-        matched_tags.append(SensitiveTag.RESIDENT_ID)
+        matched_tags.append(SensitivityTag.RESIDENT_ID)
     if re.match(RegexPattern.PHONE, value):
-        matched_tags.append(SensitiveTag.PHONE)
+        matched_tags.append(SensitivityTag.PHONE)
     if re.match(RegexPattern.EMAIL, value):
-        matched_tags.append(SensitiveTag.EMAIL)
-    if re.match(RegexPattern.TAX_CODE, value):
-        matched_tags.append(SensitiveTag.TAX_CODE)
-    if re.match(RegexPattern.BANK_ACCOUNT, value):
-        matched_tags.append(SensitiveTag.BANK_ACCOUNT)
+        matched_tags.append(SensitivityTag.EMAIL)
+    if re.match(RegexPattern.HEALTH_INSURANCE_ID, value):
+        matched_tags.append(SensitivityTag.HEALTH_INSURANCE_ID)
+    # if re.match(RegexPattern.TAX_CODE, value):
+    #     matched_tags.append(SensitiveTag.TAX_CODE)
+    # if re.match(RegexPattern.BANK_ACCOUNT, value):
+    #     matched_tags.append(SensitiveTag.BANK_ACCOUNT)
 
     if not matched_tags:
-        return [SensitiveTag.NONE]
+        return [SensitivityTag.NONE]
 
     return matched_tags
 
@@ -65,11 +69,12 @@ def calculate_regex_confidence_score(
     # Init
     total_samples = len(sample_data)
     tag_counts = {
-        SensitiveTag.RESIDENT_ID: 0,
-        SensitiveTag.PHONE: 0,
-        SensitiveTag.EMAIL: 0,
-        SensitiveTag.TAX_CODE: 0,
-        SensitiveTag.BANK_ACCOUNT: 0,
+        SensitivityTag.RESIDENT_ID: 0,
+        SensitivityTag.PHONE: 0,
+        SensitivityTag.EMAIL: 0,
+        # SensitiveTag.TAX_CODE: 0,
+        # SensitiveTag.BANK_ACCOUNT: 0,
+        SensitivityTag.HEALTH_INSURANCE_ID: 0,
     }
 
     # Get Score

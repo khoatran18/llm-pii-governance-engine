@@ -7,17 +7,18 @@ class SensitivityLevel(str, Enum):
     NONE = "NONE"
     # AMBIGUOUS = "AMBIGUOUS"
 
-class SensitiveTag(str, Enum):
+class SensitivityTag(str, Enum):
     RESIDENT_ID = "RESIDENT_ID"
     PHONE = "PHONE"
     EMAIL = "EMAIL"
-    TAX_CODE = "TAX_CODE"
-    BANK_ACCOUNT = "BANK_ACCOUNT"
+    # TAX_CODE = "TAX_CODE"
+    # BANK_ACCOUNT = "BANK_ACCOUNT"
+    HEALTH_INSURANCE_ID = "HEALTH_INSURANCE_ID"
     NAME = "NAME"
     ADDRESS = "ADDRESS"
     SALARY = "SALARY"
     DOB = "DOB"
-    WORKPLACE = "WORKPLACE"
+    # WORKPLACE = "WORKPLACE"
     NONE = "NONE"
     # AMBIGUOUS = "AMBIGUOUS"
 
@@ -25,20 +26,21 @@ class SensitiveTag(str, Enum):
     def sensitivity_level(self) -> SensitivityLevel:
         tag_sensitivity_map = {
             # HIGH
-            SensitiveTag.RESIDENT_ID: SensitivityLevel.HIGH,
-            SensitiveTag.BANK_ACCOUNT: SensitivityLevel.HIGH,
-            SensitiveTag.TAX_CODE: SensitivityLevel.HIGH,
-            SensitiveTag.SALARY: SensitivityLevel.HIGH,
+            SensitivityTag.RESIDENT_ID: SensitivityLevel.HIGH,
+            # SensitiveTag.BANK_ACCOUNT: SensitivityLevel.HIGH,
+            # SensitiveTag.TAX_CODE: SensitivityLevel.HIGH,
+            SensitivityTag.SALARY: SensitivityLevel.HIGH,
+            SensitivityTag.HEALTH_INSURANCE_ID: SensitivityLevel.HIGH,
             # MEDIUM
-            SensitiveTag.PHONE: SensitivityLevel.MEDIUM,
-            SensitiveTag.EMAIL: SensitivityLevel.MEDIUM,
-            SensitiveTag.NAME: SensitivityLevel.MEDIUM,
+            SensitivityTag.PHONE: SensitivityLevel.MEDIUM,
+            SensitivityTag.EMAIL: SensitivityLevel.MEDIUM,
+            SensitivityTag.NAME: SensitivityLevel.MEDIUM,
             # LOW
-            SensitiveTag.ADDRESS: SensitivityLevel.LOW,
-            SensitiveTag.DOB: SensitivityLevel.LOW,
-            SensitiveTag.WORKPLACE: SensitivityLevel.LOW,
+            SensitivityTag.ADDRESS: SensitivityLevel.LOW,
+            SensitivityTag.DOB: SensitivityLevel.LOW,
+            # SensitiveTag.WORKPLACE: SensitivityLevel.LOW,
             # NONE & SPECIAL
-            SensitiveTag.NONE: SensitivityLevel.NONE,
+            SensitivityTag.NONE: SensitivityLevel.NONE,
             # SensitiveTag.AMBIGUOUS: SensitivityLevel.NONE
         }
         return tag_sensitivity_map.get(self, SensitivityLevel.NONE)
@@ -46,18 +48,19 @@ class SensitiveTag(str, Enum):
     @property
     def severity_weight(self) -> int:
         weights = {
-            SensitiveTag.RESIDENT_ID: 9,
-            SensitiveTag.BANK_ACCOUNT: 8,
-            SensitiveTag.TAX_CODE: 7,
-            SensitiveTag.SALARY: 6,
-            SensitiveTag.PHONE: 5,
-            SensitiveTag.EMAIL: 4,
-            SensitiveTag.NAME: 3,
-            SensitiveTag.ADDRESS: 2,
-            SensitiveTag.DOB: 1,
-            SensitiveTag.WORKPLACE: 0,
+            SensitivityTag.RESIDENT_ID: 9,
+            # SensitiveTag.BANK_ACCOUNT: 8,
+            # SensitiveTag.TAX_CODE: 7,
+            SensitivityTag.HEALTH_INSURANCE_ID: 7,
+            SensitivityTag.SALARY: 6,
+            SensitivityTag.PHONE: 5,
+            SensitivityTag.EMAIL: 4,
+            SensitivityTag.NAME: 3,
+            SensitivityTag.ADDRESS: 2,
+            SensitivityTag.DOB: 1,
+            # SensitiveTag.WORKPLACE: 0,
             # SensitiveTag.AMBIGUOUS: -1,
-            SensitiveTag.NONE: -2
+            SensitivityTag.NONE: -2
         }
         return weights.get(self, -2)
 

@@ -75,5 +75,5 @@ class SparkLoader:
 
             print("Dynamic ingestion job completed successfully.")
 
-if __name__ == "__main__":
-    dynamic_ingestion()
+# if __name__ == "__main__":
+#     dynamic_ingestion()

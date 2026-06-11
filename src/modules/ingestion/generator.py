@@ -8,12 +8,18 @@ Structure:
 """
 
 import csv
+import json
 import random
 import string
 import os
 import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
+
+from src.core.dtos.enums import SensitivityTag
+
+# Giả định Enum được import chính xác từ hệ thống của bạn
+# from src.core.dtos.enums import SensitivityTag, SensitivityLevel
 
 # ── Config ────────────────────────────────────────────────────────────────────
 OUTPUT_DIR = Path(__file__).parent.parent.parent.parent / "data" / "csv"
@@ -24,7 +30,7 @@ TABLE_SIZES = {
     "citizen_info.csv"           : 5000,
     "administrative_records.csv" : 5000,
     "hr_employees.csv"           : 5000,
-    "transaction_logs.csv"       : 5000,
+    "medical_records.csv"        : 5000,
 }
 
 # ── LOOKUP — edit pools here ───────────────────────────────────────────────────
@@ -39,7 +45,6 @@ FIRST_NAMES = ["An", "Bình", "Châu", "Dũng", "Giang", "Hà", "Hùng", "Lan",
                "Linh", "Long", "Mai", "Nam", "Nga", "Phúc", "Quân", "Sơn",
                "Tâm", "Thảo", "Toàn", "Tuấn", "Uyên", "Việt", "Xuân", "Yến"]
 
-# Address data: province → districts → wards
 ADDRESS_TREE = {
     "Hà Nội": {
         "Quận Hoàn Kiếm" : ["Phường Hàng Bạc", "Phường Hàng Bồ", "Phường Tràng Tiền", "Phường Lý Thái Tổ"],
@@ -171,131 +176,121 @@ NATIONALITIES    = ["Việt Nam"]
 RECEPTION_CHANNELS = ["Online", "Trực tiếp", "Bưu điện", "Qua đại lý"]
 PROCESSING_RESULTS = ["Chấp thuận", "Từ chối", "Đang xem xét"]
 DOC_STATUSES     = ["Đang xử lý", "Hoàn thành", "Từ chối", "Chờ bổ sung hồ sơ"]
+BLOOD_TYPES      = ["A", "B", "O", "AB"]
 
-# Province codes used in CCCD (3-digit prefix)
+DIAGNOSES = [
+    "Viêm gan siêu vi B", "Đái tháo đường Tuýp 2", "Tăng huyết áp vô căn",
+    "Viêm dạ dày cấp", "Suy thận mạn giai đoạn 2", "Rối loạn lipid máu",
+    "Viêm phế quản cấp", "Thoái hóa cột sống thắt lưng", "Thiếu máu thiếu sắt"
+]
+MEDICATIONS = [
+    "Metformin 500mg", "Amlodipine 5mg", "Paracetamol 500mg", "Amoxicillin 500mg",
+    "Omeprazole 20mg", "Atorvastatin 10mg", "Losartan 50mg", "Salbutamol 100mcg"
+]
+HOSPITALS = [
+    "Bệnh viện Bạch Mai", "Bệnh viện Chợ Rẫy", "Bệnh viện Trung ương Huế",
+    "Bệnh viện Đại học Y Dược TP.HCM", "Bệnh viện 108", "Bệnh viện Đa khoa Đà Nẵng",
+    "Bệnh viện Nhi Trung ương", "Bệnh viện Tai Mũi Họng Trung ương"
+]
+
 PROVINCE_CODES = ["001","002","004","006","008","010","011","012","014","015","017","019","020","022","024","025","026","027","030","031","033","034","035","036","037","038","040","042","044","045","046","048","049","051","052","054","056","058","060","062","064","066","067","068","070","072","074","075","077","079","080","082","083","084","086","087","089","091","092","093","094","095","096"]
 
-# ── GENERATORS — edit value formats here ──────────────────────────────────────
+# ── GENERATORS ────────────────────────────────────────────────────────────────
 
 def rand(lst):
-    """Pick one item at random from a list."""
     return random.choice(lst)
 
-def make_id(prefix: str) -> str:
-    return f"{prefix}-{random.randint(100000, 999999)}"
+def make_id(prefix: str) -> tuple:
+    return f"{prefix}-{random.randint(100000, 999999)}", SensitivityTag.NONE
 
-def make_cccd(dob) -> str:
-    """
-    12-digit Vietnamese national ID:
-      [0:3]  province code (3 digits)
-      [3]    gender+century digit (0-3)
-      [4:6]  birth year last 2 digits
-      [6:12] random sequence (6 digits)
-    """
+def make_cccd(dob_tuple) -> tuple:
+    dob_value = dob_tuple[0]
     province = rand(PROVINCE_CODES)
     gender = rand(["0", "1", "2", "3"])
-    year = f"{dob.year % 100:02d}"
+    year = f"{dob_value.year % 100:02d}"
     seq = f"{random.randint(0, 999999):06d}"
-    return province + gender + year + seq
+    return province + gender + year + seq, SensitivityTag.RESIDENT_ID
 
-def make_full_name() -> str:
-    return f"{rand(LAST_NAMES)} {rand(MID_NAMES)} {rand(FIRST_NAMES)}"
+def make_full_name() -> tuple:
+    return f"{rand(LAST_NAMES)} {rand(MID_NAMES)} {rand(FIRST_NAMES)}", SensitivityTag.NAME
 
-def make_dob() -> date:
-    """Date of birth: 1960-01-01 to 2004-12-31."""
-    return date(1960, 1, 1) + timedelta(days=random.randint(0, 365 * 44))
+def make_dob() -> tuple:
+    return date(1960, 1, 1) + timedelta(days=random.randint(0, 365 * 44)), SensitivityTag.DOB
 
-def make_phone() -> str:
-    """
-    10-digit Vietnamese mobile number.
-    Prefixes: 03x / 05x / 07x / 08x / 09x as per Việt Nam numbering plan.
-    """
+def make_phone() -> tuple:
     prefixes = [
-        "032","033","034","035","036","037","038","039",  # Viettel
-        "056","058","059",                                # Vietnamobile
-        "070","076","077","078","079",                    # Mobifone
-        "081","082","083","084","085","086","088","089",  # Vinaphone
-        "090","091","092","093","094","096","097","098",  # legacy
+        "032","033","034","035","036","037","038","039",
+        "056","058","059",
+        "070","076","077","078","079",
+        "081","082","083","084","085","086","088","089",
+        "090","091","092","093","094","096","097","098",
     ]
-    return rand(prefixes) + f"{random.randint(1_000_000, 9_999_999)}"
+    return rand(prefixes) + f"{random.randint(1_000_000, 9_999_999)}", SensitivityTag.PHONE
 
-def _slugify(name: str) -> str:
-    """Convert Vietnamese name to ASCII slug for email local-part."""
-    name = name.lower()
-    # NFD decomposition strips combining diacritics
+def _slugify(name_tuple: tuple) -> tuple:
+    name = name_tuple[0].lower()
     nfd = unicodedata.normalize("NFD", name)
     ascii_only = "".join(c for c in nfd if unicodedata.category(c) != "Mn")
-    ascii_only = ascii_only.replace("đ", "d").replace("đ", "d")
-    return "".join(c if c.isalnum() or c == "." else "" for c in ascii_only.replace(" ", "."))
+    ascii_only = ascii_only.replace("đ", "d")
+    return "".join(c if c.isalnum() or c == "." else "" for c in ascii_only.replace(" ", ".")), SensitivityTag.NAME
 
-def make_email(name: str = None) -> str:
-    """name.name<num>@domain  — personal email."""
-    slug = _slugify(name or make_full_name())
-    return f"{slug}{random.randint(1, 999)}@{rand(EMAIL_DOMAINS)}"
+def make_email(name_tuple: tuple) -> tuple:
+    slug = _slugify(name_tuple or make_full_name())
+    return f"{slug[0]}{random.randint(1, 999)}@{rand(EMAIL_DOMAINS)}", SensitivityTag.EMAIL
 
-def make_work_email(name: str = None) -> str:
-    """name.name@company.vn  — corporate email."""
-    slug = _slugify(name or make_full_name())
-    return f"{slug}@{rand(CORP_EMAIL_DOMS)}"
+def make_work_email(name_tuple: tuple = None) -> tuple:
+    slug = _slugify(name_tuple or make_full_name())
+    return f"{slug[0]}@{rand(CORP_EMAIL_DOMS)}", SensitivityTag.EMAIL
 
-def make_address() -> str:
-    """
-    Hierarchically consistent address:
-      <house_no> <street>, <ward>, <district>, <province>
-    Province → district → ward are drawn from the same branch of ADDRESS_TREE.
-    """
+def make_address() -> tuple:
     province = rand(list(ADDRESS_TREE.keys()))
     district = rand(list(ADDRESS_TREE[province].keys()))
     ward     = rand(ADDRESS_TREE[province][district])
     house_no = random.randint(1, 500)
     street   = rand(STREETS)
-    return f"{house_no} {street}, {ward}, {district}, {province}"
+    return f"{house_no} {street}, {ward}, {district}, {province}", SensitivityTag.ADDRESS
 
-def make_province() -> str:
-    return rand(list(ADDRESS_TREE.keys()))
+def make_province() -> tuple:
+    return rand(list(ADDRESS_TREE.keys())), SensitivityTag.ADDRESS
 
-def make_tax_code() -> str:
-    """10-digit personal tax identification number."""
-    return f"{random.randint(1_000_000_000, 9_999_999_999)}"
+def make_salary() -> tuple:
+    return random.randint(5, 100) * 500_000, SensitivityTag.SALARY
 
-def make_social_insurance_no() -> str:
-    """10-digit social insurance number."""
-    return f"{random.randint(1_000_000_000, 9_999_999_999)}"
+def make_ip() -> tuple:
+    return ".".join(str(random.randint(1, 254)) for _ in range(4)), SensitivityTag.NONE
 
-def make_bank_account() -> str:
-    """9–16 digit bank account number."""
-    length = random.randint(9, 16)
-    return "".join(str(random.randint(0, 9)) for _ in range(length))
-
-def make_salary() -> int:
-    """Monthly salary in VND, rounded to nearest 500k."""
-    return random.randint(5, 100) * 500_000
-
-def make_ip() -> str:
-    return ".".join(str(random.randint(1, 254)) for _ in range(4))
-
-def make_date(start_year: int = 2020, end_year: int = 2024) -> date:
+def make_date(start_year: int = 2020, end_year: int = 2024) -> tuple:
     start = date(start_year, 1, 1)
     end   = date(end_year, 12, 31)
-    return start + timedelta(days=random.randint(0, (end - start).days))
+    return start + timedelta(days=random.randint(0, (end - start).days)), SensitivityTag.NONE
 
-def make_household_no() -> str:
-    """Household registration number: <province_code>/<6-digit-seq>."""
-    return f"{rand(PROVINCE_CODES)}/{random.randint(100_000, 999_999)}"
+def make_household_no() -> tuple:
+    return f"{rand(PROVINCE_CODES)}/{random.randint(100_000, 999_999)}", SensitivityTag.NONE
 
-def make_amount() -> int:
-    """Transaction amount in VND."""
-    return rand([50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000,
-                 20_000, 50_000, 100_000]) * 1_000
+def make_amount() -> tuple:
+    return rand([50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 50_000, 100_000]) * 1_000, SensitivityTag.NONE
 
-def make_device_fp() -> str:
-    return "".join(random.choices(string.hexdigits.lower(), k=32))
+def make_device_fp() -> tuple:
+    return "".join(random.choices(string.hexdigits.lower(), k=32)), SensitivityTag.NONE
 
-def make_batch_id() -> str:
-    return f"BATCH-{random.randint(1000, 9999)}"
+def make_batch_id() -> tuple:
+    return f"BATCH-{random.randint(1000, 9999)}", SensitivityTag.NONE
+
+def make_decision_no() -> tuple:
+    return f"{random.randint(100, 999)}/QĐ-UBND", SensitivityTag.NONE
+
+def make_bhyt_no() -> tuple:
+    prefix = random.choice(["GD", "DN", "CH", "HC", "XK"])
+    digits = "".join(str(random.randint(0, 9)) for _ in range(13))
+    return f"{prefix}{digits}", SensitivityTag.HEALTH_INSURANCE_ID
+
+def make_emp_badge_id() -> tuple:
+    year = random.choice(["2021", "2022", "2023", "2024", "2025"])
+    seq = f"{random.randint(1, 9999):04d}"
+    return f"NV-{year}-{seq}", SensitivityTag.NONE
 
 
-# ── SCHEMAS — one row-builder per table ───────────────────────────────────────
+# ── SCHEMAS ───────────────────────────────────────────────────────────────────
 
 def build_citizen_row() -> dict:
     name = make_full_name()
@@ -303,54 +298,54 @@ def build_citizen_row() -> dict:
     cccd = make_cccd(dob)
     return {
         "record_id"          : make_id("CIT"),
-        "cccd_so"            : cccd,              # HIGH   | Regex
-        "ho_va_ten"          : name,                     # MEDIUM | LLM
-        "ngay_sinh"          : dob,               # LOW    | LLM
-        "gioi_tinh"          : rand(["Nam", "Nữ"]),      # NONE
-        "sdt_chinh"          : make_phone(),             # MEDIUM | Regex
-        "dia_chi_cu_tru"     : make_address(),           # LOW    | LLM
-        "tinh_thanh"         : make_province(),          # NONE
-        "quoc_tich"          : rand(NATIONALITIES),      # NONE
-        "ref_ext"            : make_email(name),         # MEDIUM | LLM   (ambiguous: personal email)
-        "so_phu"             : make_phone(),             # MEDIUM | Regex (ambiguous: secondary phone)
-        "pid"                : cccd,          # HIGH   | Regex (ambiguous: tax code)
-        "tinh_trang_hn"      : rand(MARITAL_STATUSES),  # NONE
-        "trinh_do_hv"        : rand(EDUCATION_LEVELS),  # NONE
-        "nghe_nghiep"        : rand(OCCUPATIONS),       # NONE
-        "noi_sinh"           : make_province(),          # LOW    | LLM
-        "so_nguoi_phu_thuoc" : random.randint(0, 5),    # NONE
-        "ngay_cap_cccd"      : make_date(2015, 2024),   # NONE
-        "dan_toc"            : rand(ETHNICITIES),        # NONE
-        "created_at"         : make_date(2022, 2024),   # NONE
+        "cccd_so"            : cccd,
+        "ho_va_ten"          : name,
+        "ngay_sinh"          : dob,
+        "gioi_tinh"          : rand(["Nam", "Nữ"]),
+        "sdt_chinh"          : make_phone(),
+        "dia_chi_cu_tru"     : make_address(),
+        "tinh_thanh"         : make_province(),
+        "quoc_tich"          : rand(NATIONALITIES),
+        "ref_ext"            : make_email(name),
+        "so_phu"             : make_phone(),
+        "nhom_mau"           : rand(BLOOD_TYPES),
+        "tinh_trang_hn"      : rand(MARITAL_STATUSES),
+        "trinh_do_hv"        : rand(EDUCATION_LEVELS),
+        "nghe_nghiep"        : rand(OCCUPATIONS),
+        "noi_sinh"           : make_province(),
+        "so_nguoi_phu_thuoc" : random.randint(0, 5),
+        "ngay_cap_cccd"      : make_date(2015, 2024),
+        "dan_toc"            : rand(ETHNICITIES),
+        "created_at"         : make_date(2022, 2024),
     }
 
 def build_admin_row() -> dict:
     name        = make_full_name()
     submitted   = make_date(2021, 2024)
-    deadline    = submitted + timedelta(days=random.randint(7, 60))
+    deadline    = submitted[0] + timedelta(days=random.randint(7, 60)) if isinstance(submitted, tuple) else submitted + timedelta(days=random.randint(7, 60))
     dob         = make_dob()
     cccd        = make_cccd(dob)
     return {
         "ho_so_id"           : make_id("ADM"),
-        "ref_id"             : cccd,              # HIGH   | Regex (ambiguous: CCCD of applicant)
-        "ten_chu_ho_so"      : name,                     # MEDIUM | LLM
-        "val_02"             : make_phone(),             # MEDIUM | Regex (ambiguous: contact phone)
-        "loai_ho_so"         : rand(DOC_TYPES),          # NONE
-        "co_quan_tiep_nhan"  : rand(GOV_AGENCIES),      # NONE
-        "ngay_nop"           : submitted,               # NONE
-        "han_giai_quyet"     : deadline,                # NONE
-        "trang_thai_xu_ly"   : rand(DOC_STATUSES),      # NONE
-        "ext_info"           : make_email(name),         # MEDIUM | LLM   (ambiguous: result notification email)
-        "code_x"             : cccd,          # HIGH   | Regex (ambiguous: tax code)
-        "so_bao_hiem"        : make_social_insurance_no(), # HIGH | Regex
-        "phi_ho_so"          : rand([0, 50_000, 100_000, 200_000]),  # NONE
-        "nhan_vien_xu_ly"    : make_id("NV"),           # NONE
-        "dia_chi_lien_lac"   : make_address(),           # LOW    | LLM
-        "meta_addr"          : make_address(),           # LOW    | LLM   (ambiguous: org address)
-        "so_ho_khau"         : make_household_no(),      # MEDIUM | Regex
-        "kenh_tiep_nhan"     : rand(RECEPTION_CHANNELS),# NONE
-        "ket_qua_xu_ly"      : rand(PROCESSING_RESULTS),# NONE
-        "updated_at"         : make_date(2022, 2024),   # NONE
+        "ref_id"             : cccd,
+        "ten_chu_ho_so"      : name,
+        "val_02"             : make_phone(),
+        "loai_ho_so"         : rand(DOC_TYPES),
+        "co_quan_tiep_nhan"  : rand(GOV_AGENCIES),
+        "ngay_nop"           : submitted,
+        "han_giai_quyet"     : deadline,
+        "trang_thai_xu_ly"   : rand(DOC_STATUSES),
+        "ext_info"           : make_email(name),
+        "so_bien_lai"        : make_id("BL"),
+        "so_bao_hiem"        : make_bhyt_no(),
+        "phi_ho_so"          : rand([0, 50_000, 100_000, 200_000]),
+        "nhan_vien_xu_ly"    : make_id("NV"),
+        "dia_chi_lien_lac"   : make_address(),
+        "meta_addr"          : make_address(),
+        "so_ho_khau"         : make_household_no(),
+        "kenh_tiep_nhan"     : rand(RECEPTION_CHANNELS),
+        "ket_qua_xu_ly"      : rand(PROCESSING_RESULTS),
+        "updated_at"         : make_date(2022, 2024),
     }
 
 def build_hr_row() -> dict:
@@ -359,75 +354,123 @@ def build_hr_row() -> dict:
     cccd = make_cccd(dob)
     return {
         "emp_id"             : make_id("EMP"),
-        "so_cccd"            : cccd,              # HIGH   | Regex
-        "ho_ten_nv"          : name,                     # MEDIUM | LLM
-        "d_entry"            : dob,               # LOW    | LLM   (ambiguous: date of birth)
-        "sdt_ca_nhan"        : make_phone(),             # MEDIUM | Regex
-        "personal_email"     : make_email(name),         # MEDIUM | Regex
-        "work_email"         : make_work_email(name),    # MEDIUM | Regex
-        "res_data"           : make_address(),           # LOW    | LLM   (ambiguous: home address)
-        "phong_ban"          : rand(DEPARTMENTS),        # NONE
-        "chuc_vu"            : rand(POSITIONS),          # NONE
-        "m_val"              : make_salary(),            # HIGH   | LLM   (ambiguous: monthly salary)
-        "stk_ngan_hang"      : make_bank_account(),      # HIGH   | Regex
-        "ten_ngan_hang"      : rand(BANKS),              # NONE
-        "t_code"             : cccd,                     # HIGH   | Regex (ambiguous: personal tax code)
-        "ins_num"            : make_social_insurance_no(), # HIGH | Regex (ambiguous: insurance number)
-        "ngay_vao_lam"       : make_date(2010, 2024),   # NONE
-        "loai_hop_dong"      : rand(CONTRACT_TYPES),     # NONE
-        "noi_lam_viec"       : make_province(),          # LOW    | LLM
-        "manager_id"         : make_id("EMP"),           # NONE
-        "created_at"         : make_date(2022, 2024),   # NONE
+        "so_cccd"            : cccd,
+        "ho_ten_nv"          : name,
+        "d_entry"            : dob,
+        "sdt_ca_nhan"        : make_phone(),
+        "personal_email"     : make_email(name),
+        "work_email"         : make_work_email(name),
+        "res_data"           : make_address(),
+        "phong_ban"          : rand(DEPARTMENTS),
+        "chuc_vu"            : rand(POSITIONS),
+        "m_val"              : make_salary(),
+        "mnv"                : make_batch_id(),
+        "ten_ngan_hang"      : rand(BANKS),
+        "so_quyet_dinh"      : make_decision_no(),
+        "ins_num"            : make_bhyt_no(),
+        "ngay_vao_lam"       : make_date(2010, 2024),
+        "loai_hop_dong"      : rand(CONTRACT_TYPES),
+        "gender"             : rand(["male", "female"]),
+        "manager_id"         : make_id("EMP"),
+        "created_at"         : make_date(2022, 2024),
     }
 
-def build_txn_row() -> dict:
-    sender   = make_full_name()
-    receiver = make_full_name()
-    txn_date = make_date(2022, 2024)
-    dob      = make_dob()
-    cccd     = make_cccd(dob)
+def build_medical_row() -> dict:
+    name = make_full_name()
+    dob = make_dob()
+    cccd = make_cccd(dob)
+    visit_date = make_date(2022, 2024)
     return {
-        "txn_id"             : make_id("TXN"),
-        "initiator_key"      : cccd,                     # HIGH   | Regex (ambiguous: CCCD of initiator)
-        "sender_fullname"    : sender,                   # MEDIUM | LLM
-        "acct_a"             : make_bank_account(),      # HIGH   | Regex (ambiguous: sender account)
-        "val_c"              : make_phone(),             # MEDIUM | Regex (ambiguous: sender phone)
-        "acct_b"             : make_bank_account(),      # HIGH   | Regex (ambiguous: receiver account)
-        "receiver_name"      : receiver,                 # MEDIUM | LLM
-        "so_tien"            : make_amount(),            # NONE
-        "loai_tien_te"       : "VND",                   # NONE
-        "loai_giao_dich"     : rand(TXN_TYPES),          # NONE
-        "kenh_giao_dich"     : rand(TXN_CHANNELS),       # NONE
-        "trang_thai"         : rand(TXN_STATUSES),       # NONE
-        "notify_ref"         : make_email(sender),       # MEDIUM | LLM   (ambiguous: confirmation email)
-        "ip_addr"            : make_ip(),                # MEDIUM | Regex
-        "device_fingerprint" : make_device_fp(),         # NONE
-        "geo_label"          : make_province(),          # LOW    | LLM   (ambiguous: transaction location)
-        "receiver_phone"     : make_phone(),             # MEDIUM | Regex
-        "phi_giao_dich"      : rand([0, 1_000, 2_000, 5_000, 10_000]),  # NONE
-        "created_at"         : txn_date,                # NONE
-        "batch_id"           : make_batch_id(),          # NONE
+        "record_id"          : make_id("MED"),
+        "so_cccd_benh_nhan"  : cccd,
+        "ho_ten_benh_nhan"   : name,
+        "ngay_sinh"          : dob,
+        "gioi_tinh"          : random.choice(["Nam", "Nữ"]),
+        "nhom_mau"           : random.choice(["A", "B", "O", "AB"]),
+        "so_dien_thoai"      : make_phone(),
+        "email_lien_he"      : make_email(name),
+        "dia_chi_thuong_tru" : make_address(),
+        "ma_so_bhyt"         : make_bhyt_no(),
+        "ten_benh_vien"      : random.choice(HOSPITALS),
+        "khoa_kham"          : random.choice(["Nội tổng quát", "Ngoại thần kinh", "Tim mạch", "Tiêu hóa", "Nhi"]),
+        "chuan_doan"         : random.choice(DIAGNOSES),
+        "thuoc_chi_dinh"     : random.choice(MEDICATIONS),
+        "chieu_cao_cm"       : random.randint(150, 185),
+        "can_nang_kg"        : random.randint(45, 90),
+        "huyet_ap"           : f"{random.randint(110, 140)}/{random.randint(70, 90)}",
+        "bac_si_dieu_tri"    : make_full_name(),
+        "ngay_kham"          : visit_date,
+        "ghi_chu_ls"         : "Bệnh nhân tỉnh táo, tiếp xúc tốt.",
     }
 
-
-# ── ENGINE — do not touch ─────────────────────────────────────────────────────
+# ── ENGINE — Sửa đổi hàm bóc tách dữ liệu linh hoạt ───────────────────────────
 
 TABLES = [
     ("citizen_info.csv",           build_citizen_row),
     ("administrative_records.csv", build_admin_row),
     ("hr_employees.csv",           build_hr_row),
-    ("transaction_logs.csv",       build_txn_row),
+    ("medical_records.csv",        build_medical_row),
 ]
 
-def write_csv(filename: str, row_fn, n_rows: int) -> None:
+def normalize_value_and_tag(item) -> tuple:
+    """
+    Hàm chuẩn hóa: Đảm bảo bất kể hàm generator trả về tuple hay giá trị thô,
+    hệ thống đều ép về đúng chuẩn cặp định dạng: (giá_trị_thô, SensitiveTag)
+    """
+    if isinstance(item, tuple) and len(item) == 2 and isinstance(item[1], SensitivityTag):
+        return item[0], item[1]
+    return item, SensitivityTag.NONE
+
+def write_csv_and_metadata(filename: str, row_fn, n_rows: int) -> None:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    path = os.path.join(OUTPUT_DIR, filename)
-    rows = [row_fn() for _ in range(n_rows)]
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+    os.makedirs(OUTPUT_DIR / "metadata", exist_ok=True)
+
+    # 1. Sinh toàn bộ dữ liệu thô (gồm cả tuple và raw value lẫn lộn)
+    raw_rows = [row_fn() for _ in range(n_rows)]
+    fieldnames = list(raw_rows[0].keys())
+
+    # 2. Trích xuất Metadata an toàn từ dòng đầu tiên
+    columns_metadata = []
+    for col in fieldnames:
+        _, tag = normalize_value_and_tag(raw_rows[0][col])
+        columns_metadata.append({
+            "column_name": col,
+            "sensitivity_tag": tag.value,
+            "sensitivity_level": tag.sensitivity_level.value
+        })
+
+    metadata = {
+        "table_name": filename,
+        "total_columns": len(fieldnames),
+        "columns": columns_metadata
+    }
+
+    # 3. "Gọt vỏ" chính xác để tạo dòng ghi CSV
+    csv_rows = []
+    for r in raw_rows:
+        row_data = {}
+        for col in fieldnames:
+            val, _ = normalize_value_and_tag(r[col])
+            # Chuyển object date sang chuỗi string để ghi CSV không bị lỗi format
+            if isinstance(val, (date,)):
+                val = val.isoformat()
+            row_data[col] = val
+        csv_rows.append(row_data)
+
+    # 4. Ghi file CSV
+    csv_path = os.path.join(OUTPUT_DIR, filename)
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(rows)
-    print(f"  ✅  {filename:40s}  {n_rows:>5,} rows  →  {path}")
+        writer.writerows(csv_rows)
+    print(f"{filename:40s}  {n_rows:>5,} rows  →  {csv_path}")
+
+    # 5. Ghi file JSON Metadata
+    base_name, _ = os.path.splitext(filename)
+    meta_path = os.path.join(OUTPUT_DIR / "metadata", f"{base_name}_metadata.json")
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=4)
+    print(f"{base_name}_metadata.json  Generated successfully.")
 
 def main() -> None:
     total = sum(TABLE_SIZES.values())
@@ -436,7 +479,7 @@ def main() -> None:
     print(f"{'='*60}")
     for filename, row_fn in TABLES:
         n = TABLE_SIZES.get(filename, 5000)
-        write_csv(filename, row_fn, n)
+        write_csv_and_metadata(filename, row_fn, n)
     print(f"{'='*60}")
     print(f"  Done. Output folder: {OUTPUT_DIR}/")
     print(f"{'='*60}\n")

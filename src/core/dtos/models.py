@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from src.core.dtos.enums import (
     DetectionMethod,
     MaskingRule,
-    SensitiveTag,
+    SensitivityTag,
     SensitivityLevel,
     UserRole, RegexStatus,
 )
@@ -22,7 +22,7 @@ class ColumnMetadata(BaseModel):
     table_id: int = Field(..., description="Table ID")
     column_name: str = Field(..., description="Column name in Lakehouse")
     data_type: str = Field(..., description="Data type of the column")
-    sensitive_tag: SensitiveTag = Field(..., description="Sensitive tag of the column")
+    sensitive_tag: SensitivityTag = Field(..., description="Sensitive tag of the column")
     sensitivity_level: SensitivityLevel = Field(..., description="Sensitivity level of the column")
     confidence_level: float = Field(..., description="Confidence level of the column")
     detection_method: DetectionMethod = Field(..., description="Detection method used to detect the column")
@@ -49,8 +49,8 @@ class GovernanceAuditLog(BaseModel):
     table_name: str = Field(..., description="Scanned table name in Lakehouse")
     column_name: str = Field(..., description="Column name that was detected")
     detection_method: DetectionMethod = Field(..., description="In REGEX, LLM, HYBRID")
-    possible_sensitivity_tags: List[SensitiveTag] = Field(..., description="List of possible PII tags")
-    sensitivity_tag: SensitiveTag = Field(..., description="Final PII tag after manual review")
+    possible_sensitivity_tags: List[SensitivityTag] = Field(..., description="List of possible PII tags")
+    sensitivity_tag: SensitivityTag = Field(..., description="Final PII tag after manual review")
     sensitivity_level: SensitivityLevel = Field(..., description="Sensitivty level of the column")
     confidence_score: float = Field(..., description="Confidence score of the detection")
     reason: Optional[str] = Field(None, description="From LLM or Regex or LLM return AMBIGUOUS and be chosen by confidence score from Regex")
@@ -63,7 +63,7 @@ class ColumnScanInput(BaseModel):
         ...,
         description="SUCCESS (1 match), COLLISION (multiple matches), or UNDETERMINED (0 match)"
     )
-    regex_candidates: List[SensitiveTag] = Field(
+    regex_candidates: List[SensitivityTag] = Field(
         default_factory=list,
         description="List of PII tags detected by Regex. Contains 1 item if SUCCESS, multiple if COLLISION, empty [] if UNDETERMINED"
     )
@@ -92,7 +92,7 @@ class TableLLMScanRequest(BaseModel):
 class SingleColumnLLMOutput(BaseModel):
     column_name: str
     is_pii: bool
-    suggested_tag: SensitiveTag
+    suggested_tag: SensitivityTag
     sensitivity_level: SensitivityLevel
     confidence_score: float
     reason: str
@@ -113,7 +113,7 @@ class MaskingPolicy(BaseModel):
 class ColumnScanResult(BaseModel):
     column_name: str = Field(..., description="Column name")
     is_pii: bool = Field(..., description="True if the column contains PII")
-    sensitivity_tag: SensitiveTag = Field(..., description="Suggested PII tag")
+    sensitivity_tag: SensitivityTag = Field(..., description="Suggested PII tag")
     sensitivity_level: SensitivityLevel = Field(..., description="Sensitivty level of the column")
     confidence_score: float = Field(..., description="Confidence score of the detection")
     detection_method: DetectionMethod = Field(..., description="Detection method used")
