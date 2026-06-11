@@ -1,0 +1,1172 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "pii-audit-v3",
+    "namespace": "default",
+    "uid": "27a50429-b6db-4a52-b209-7c96778bde83",
+    "resourceVersion": "1781182437571013",
+    "generation": 2,
+    "creationTimestamp": "2026-06-11T12:40:58Z",
+    "labels": {
+      "grafana.app/deprecatedInternalID": "2403036846530560"
+    },
+    "annotations": {
+      "grafana.app/createdBy": "access-policy:service",
+      "grafana.app/managedBy": "classic-file-provisioning",
+      "grafana.app/managerId": "default",
+      "grafana.app/sourceChecksum": "9a5d1e31c0439bcbee50d41585c99062",
+      "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/dashboard_models/dashboard_1.json",
+      "grafana.app/sourceTimestamp": "1781182432000",
+      "grafana.app/updatedBy": "access-policy:service",
+      "grafana.app/updatedTimestamp": "2026-06-11T12:53:57Z",
+      "grafana.app/folder": ""
+    }
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "builtIn": true,
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "query": {
+            "datasource": {
+              "name": "-- Grafana --"
+            },
+            "group": "grafana",
+            "kind": "DataQuery",
+            "spec": {},
+            "version": "v0"
+          }
+        }
+      }
+    ],
+    "cursorSync": "Crosshair",
+    "description": "PII Security & Policy Audit — AI Governance Dashboard",
+    "editable": true,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "postgres_uid"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT COUNT(DISTINCT table_name) AS \"Bảng đã quét\" FROM tables_metadata;"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Tổng số bảng dữ liệu đã được hệ thống quét và ghi nhận PII",
+          "id": 1,
+          "links": [],
+          "title": "📊 Tổng số bảng đã quét",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "displayName": "Bảng đã quét",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "#1e3a5f",
+                        "value": 0
+                      },
+                      {
+                        "color": "#3b82f6",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "valueSize": 72
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              }
+            },
+            "version": "13.0.2"
+          }
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "postgres_uid"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  cm.sensitivity_tag AS \"Loại PII\",\n  COUNT(*) AS \"Số cột\"\nFROM columns_metadata cm\nJOIN tables_metadata tm ON tm.table_id = cm.table_id\nWHERE cm.sensitivity_tag <> 'NONE'\n  AND ('${selected_table}' = 'ALL_TABLES' OR tm.table_name = '${selected_table}')\nGROUP BY cm.sensitivity_tag\nORDER BY \"Số cột\" DESC;"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Số lượng cột phát hiện PII theo từng loại nhãn nhạy cảm",
+          "id": 2,
+          "links": [],
+          "title": "🏷️ Phân bố PII theo Category (Sensitivity Tag)",
+          "vizConfig": {
+            "group": "barchart",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "fixedColor": "#6366f1",
+                    "mode": "fixed"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "Số cột phát hiện",
+                    "axisPlacement": "auto",
+                    "fillOpacity": 85,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineWidth": 0,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "RESIDENT_ID"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#dc2626",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "BANK_ACCOUNT"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#b91c1c",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "TAX_CODE"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#c2410c",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "SALARY"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#ea580c",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "PHONE"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#d97706",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "EMAIL"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#ca8a04",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "NAME"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#a16207",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "ADDRESS"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#4ade80",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "DOB"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#22c55e",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "WORKPLACE"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#16a34a",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "barRadius": 0.06,
+                "barWidth": 0.65,
+                "colorByField": "Loại PII",
+                "fullHighlight": true,
+                "groupWidth": 0.7,
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "orientation": "vertical",
+                "showValue": "always",
+                "stacking": "none",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "desc"
+                },
+                "xTickLabelRotation": -25,
+                "xTickLabelSpacing": 0
+              }
+            },
+            "version": "13.0.2"
+          }
+        }
+      },
+      "panel-3": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "postgres_uid"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  cm.sensitivity_level AS \"Mức độ\",\n  COUNT(*) AS \"Số cột\"\nFROM columns_metadata cm\nJOIN tables_metadata tm ON tm.table_id = cm.table_id\nWHERE cm.sensitivity_level <> 'NONE'\n  AND ('${selected_table}' = 'ALL_TABLES' OR tm.table_name = '${selected_table}')\nGROUP BY cm.sensitivity_level\nORDER BY\n  CASE cm.sensitivity_level\n    WHEN 'HIGH'   THEN 1\n    WHEN 'MEDIUM' THEN 2\n    WHEN 'LOW'    THEN 3\n    ELSE 4\n  END;"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "prepareTimeSeries",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "strategy": "auto"
+                    }
+                  }
+                },
+                {
+                  "group": "partitionByValues",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "fields": [
+                        "Mức độ"
+                      ],
+                      "keepFields": false
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Tỷ lệ HIGH / MEDIUM / LOW trong toàn bộ cột đã phát hiện PII",
+          "id": 3,
+          "links": [],
+          "title": "⚡ Sensitivity Level",
+          "vizConfig": {
+            "group": "piechart",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    }
+                  },
+                  "displayName": "${__field.labels.Mức độ}",
+                  "unit": "short"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": ".*HIGH.*"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#ff1a1a",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": ".*MEDIUM.*"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#ff6b00",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": ".*LOW.*"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#facc15",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "displayLabels": [
+                  "percent",
+                  "name"
+                ],
+                "legend": {
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true,
+                  "values": [
+                    "percent",
+                    "value"
+                  ]
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "sort": "desc",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "13.0.2"
+          }
+        }
+      },
+      "panel-4": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "postgres_uid"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  gal.detection_method AS \"Phương pháp\",\n  COUNT(*) AS \"Số cột\"\nFROM governance_audit_logs gal\nWHERE ('${selected_table}' = 'ALL_TABLES' OR gal.table_name = '${selected_table}')\nGROUP BY gal.detection_method\nORDER BY \"Số cột\" DESC;"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "prepareTimeSeries",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "strategy": "auto"
+                    }
+                  }
+                },
+                {
+                  "group": "partitionByValues",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "fields": [
+                        "Phương pháp"
+                      ],
+                      "keepFields": false
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Tỷ lệ phát hiện PII bằng Regex / LLM / Hybrid",
+          "id": 4,
+          "links": [],
+          "title": "🤖 Detection Method",
+          "vizConfig": {
+            "group": "piechart",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    }
+                  },
+                  "displayName": "${__field.labels.Phương pháp}",
+                  "unit": "short"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": ".*REGEX.*"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#3b82f6",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": ".*LLM.*"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#a855f7",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": ".*HYBRID.*"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#06b6d4",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "displayLabels": [
+                  "percent",
+                  "name"
+                ],
+                "legend": {
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true,
+                  "values": [
+                    "percent",
+                    "value"
+                  ]
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "sort": "desc",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "13.0.2"
+          }
+        }
+      },
+      "panel-5": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "postgres_uid"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  pal.executed_at AS \"Thời gian\",\n  pal.user_role AS \"Role\",\n  pal.target_table AS \"Bảng\",\n  col_item->>'sensitivity_level' AS \"Sensitivity Level\",\n  ap.masking_rule AS \"Masking Rule\",\n  COUNT(*) AS \"Số cột\",\n  string_agg(col_item->>'column_name', ', ' ORDER BY col_item->>'column_name') AS \"Các cột bị tác động\"\nFROM policy_engine_audit_logs pal\nCROSS JOIN jsonb_array_elements(pal.context_details->'accessed_columns') AS col_item\nLEFT JOIN access_policies ap\n  ON ap.role_name = pal.user_role\n  AND ap.sensitivity_level = col_item->>'sensitivity_level'\n  AND ('${selected_table}' = 'ALL_TABLES' OR pal.target_table = '${selected_table}')\nGROUP BY\n  pal.log_id,\n  pal.executed_at,\n  pal.user_role,\n  pal.target_table,\n  col_item->>'sensitivity_level',\n  ap.masking_rule\nORDER BY\n  pal.executed_at DESC,\n  CASE col_item->>'sensitivity_level'\n    WHEN 'HIGH'   THEN 1\n    WHEN 'MEDIUM' THEN 2\n    WHEN 'LOW'    THEN 3\n    ELSE 4\n  END\nLIMIT 300;"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Nhật ký kiểm toán thời gian thực. Unpack JSONB accessed_columns[]. Lọc theo bảng đã chọn.",
+          "id": 5,
+          "links": [],
+          "title": "📋 Log Policy Engine — Truy vấn gần nhất kèm Role & Masking",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "minWidth": 80
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Thời gian"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 160
+                      },
+                      {
+                        "id": "unit",
+                        "value": "dateTimeAsLocal"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Role"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 115
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "ADMIN": {
+                                "color": "#10b981",
+                                "index": 0,
+                                "text": "ADMIN"
+                              },
+                              "ANALYST": {
+                                "color": "#3b82f6",
+                                "index": 1,
+                                "text": "ANALYST"
+                              },
+                              "AUDITOR": {
+                                "color": "#f59e0b",
+                                "index": 2,
+                                "text": "AUDITOR"
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-text"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Bảng"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 180
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Sensitivity Level"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 130
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "HIGH": {
+                                "color": "#dc2626",
+                                "index": 0,
+                                "text": "HIGH"
+                              },
+                              "LOW": {
+                                "color": "#f59e0b",
+                                "index": 2,
+                                "text": "LOW"
+                              },
+                              "MEDIUM": {
+                                "color": "#f97316",
+                                "index": 1,
+                                "text": "MEDIUM"
+                              },
+                              "NONE": {
+                                "color": "#22c55e",
+                                "index": 3,
+                                "text": "NONE"
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "mode": "basic",
+                          "type": "color-text"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Masking Rule"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 155
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "CLEAR_TEXT": {
+                                "color": "#22c55e",
+                                "index": 0,
+                                "text": "CLEAR_TEXT"
+                              },
+                              "HASH_MASK": {
+                                "color": "#3b82f6",
+                                "index": 2,
+                                "text": "HASH_MASK"
+                              },
+                              "NONE": {
+                                "color": "#6b7280",
+                                "index": 5,
+                                "text": "NONE"
+                              },
+                              "NULLIFY_MASK": {
+                                "color": "#f97316",
+                                "index": 3,
+                                "text": "NULLIFY_MASK"
+                              },
+                              "PARTIAL_MASK": {
+                                "color": "#f59e0b",
+                                "index": 1,
+                                "text": "PARTIAL_MASK"
+                              },
+                              "REDACTED_MASK": {
+                                "color": "#ef4444",
+                                "index": 4,
+                                "text": "REDACTED_MASK"
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-text"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Số cột"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 80
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "mode": "gradient",
+                          "type": "color-text"
+                        }
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "mode": "continuous-BlPu"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Các cột bị tác động"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.minWidth",
+                        "value": 300
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "auto"
+                        }
+                      },
+                      {
+                        "id": "custom.wrapText",
+                        "value": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "cellHeight": "sm",
+                "enablePagination": true,
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": true,
+                    "displayName": "Thời gian"
+                  }
+                ]
+              }
+            },
+            "version": "13.0.2"
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "GridLayout",
+      "spec": {
+        "items": [
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-1"
+              },
+              "height": 4,
+              "width": 24,
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-2"
+              },
+              "height": 10,
+              "width": 12,
+              "x": 0,
+              "y": 4
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-3"
+              },
+              "height": 10,
+              "width": 6,
+              "x": 12,
+              "y": 4
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-4"
+              },
+              "height": 10,
+              "width": 6,
+              "x": 18,
+              "y": 4
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-5"
+              },
+              "height": 12,
+              "width": 24,
+              "x": 0,
+              "y": 14
+            }
+          }
+        ]
+      }
+    },
+    "links": [],
+    "liveNow": false,
+    "preload": false,
+    "tags": [
+      "pii",
+      "governance",
+      "audit",
+      "security"
+    ],
+    "timeSettings": {
+      "autoRefresh": "30s",
+      "autoRefreshIntervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "fiscalYearStartMonth": 0,
+      "from": "now-7d",
+      "hideTimepicker": false,
+      "timezone": "Asia/Ho_Chi_Minh",
+      "to": "now"
+    },
+    "title": "PII Security & Policy Audit",
+    "variables": [
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "allValue": "ALL_TABLES",
+          "allowCustomValue": true,
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "hide": "dontHide",
+          "includeAll": true,
+          "label": "🔍 Lọc theo bảng",
+          "multi": false,
+          "name": "selected_table",
+          "options": [],
+          "query": {
+            "datasource": {
+              "name": "postgres_uid"
+            },
+            "group": "postgres",
+            "kind": "DataQuery",
+            "spec": {
+              "__legacyStringValue": "SELECT table_name FROM tables_metadata ORDER BY table_name"
+            },
+            "version": "v0"
+          },
+          "refresh": "onTimeRangeChanged",
+          "regex": "",
+          "regexApplyTo": "value",
+          "skipUrlSync": false,
+          "sort": "alphabeticalAsc"
+        }
+      }
+    ]
+  }
+}

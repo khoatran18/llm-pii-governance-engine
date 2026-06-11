@@ -55,6 +55,16 @@ CREATE TABLE IF NOT EXISTS governance_audit_logs (
     scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 5. Policy Engine Audit logs
+
+CREATE TABLE IF NOT EXISTS policy_engine_audit_logs (
+    log_id BIGSERIAL PRIMARY KEY,
+    user_role VARCHAR(50) NOT NULL,
+    target_table VARCHAR(255) NOT NULL,              -- Chỉ cần lưu tên Bảng ở ngoài
+    context_details JSONB,
+    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- =====================================================================
 -- TẦNG DML: NẠP MA TRẬN CHÍNH SÁCH KIỂM SOÁT TRUY CẬP TRỤC DỌC (TUẦN 4)
 -- =====================================================================
@@ -74,16 +84,19 @@ TRUNCATE TABLE access_policies CASCADE;
 INSERT INTO access_policies (role_name, sensitivity_level, masking_rule) VALUES
 ('ADMIN', 'LOW', 'CLEAR_TEXT'),
 ('ADMIN', 'MEDIUM', 'CLEAR_TEXT'),
-('ADMIN', 'HIGH', 'CLEAR_TEXT');
+('ADMIN', 'HIGH', 'CLEAR_TEXT'),
+('ADMIN', 'NONE', 'CLEAR_TEXT');
 
 -- 2. CHÍNH SÁCH CHO ROLE: ANALYST
 INSERT INTO access_policies (role_name, sensitivity_level, masking_rule) VALUES
 ('ANALYST', 'LOW', 'HASH_MASK'),
 ('ANALYST', 'MEDIUM', 'NULLIFY_MASK'),
-('ANALYST', 'HIGH', 'HASH_MASK');
+('ANALYST', 'HIGH', 'HASH_MASK'),
+('ANALYST', 'NONE', 'CLEAR_TEXT');
 
 -- 3. CHÍNH SÁCH CHO ROLE: AUDITOR
 INSERT INTO access_policies (role_name, sensitivity_level, masking_rule) VALUES
 ('AUDITOR', 'LOW', 'REDACTED_MASK'),
 ('AUDITOR', 'MEDIUM', 'PARTIAL_MASK'),
-('AUDITOR', 'HIGH', 'PARTIAL_MASK');    -- Che giữa giữ đầu đuôi phục vụ kiểm toán chứng từ
+('AUDITOR', 'HIGH', 'PARTIAL_MASK'),    -- Che giữa giữ đầu đuôi phục vụ kiểm toán chứng từ
+('AUDITOR', 'NONE', 'CLEAR_TEXT');

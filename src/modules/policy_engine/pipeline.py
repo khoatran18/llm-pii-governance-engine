@@ -1,10 +1,12 @@
+import json
 import logging
 
 from pyspark.sql import DataFrame
+from sqlalchemy.engine import row
 
 from local.posgres_init_example import PostgresClient
 from src.config.logging import setup_logging
-from src.core.dtos.enums import UserRole
+from src.core.dtos.enums import UserRole, SensitivityLevel
 from src.modules.ai_governance.utils import get_table_fqn
 from src.modules.policy_engine.data_masker import DataMasker
 
@@ -24,7 +26,7 @@ class PolicyEngine:
         Get masking policies for a specific table and user role
         """
         sql_policy = """
-            SELECT t.table_name, c.column_name, ap.masking_rule
+            SELECT t.table_name, c.column_name, c.sensitivity_level, ap.masking_rule
             FROM columns_metadata c
                 JOIN tables_metadata t ON c.table_id = t.table_id
                 JOIN access_policies ap ON c.sensitivity_level = ap.sensitivity_level
@@ -43,6 +45,56 @@ class PolicyEngine:
 
         # policy_engine_logger.info(f"SQL Policy: {sql_policy}")
         return self.pg_client.execute_query(sql_policy, params)
+
+    def _write_audit_log(self, user_role: UserRole, table_name: str, actual_columns: list, policies: list):
+        """
+        Write audit log when have queries
+        """
+        try:
+            policy_map = {
+                row['column_name']: {
+                    'sensitivity_level': row['sensitivity_level'],
+                    'masking_rule': row['masking_rule']
+                } for row in policies
+            }
+
+            accessed_columns = []
+            for col in actual_columns:
+                if col in policy_map:
+                    info = policy_map[col]
+                    action = info['masking_rule'] if info['masking_rule'] else SensitivityLevel.NONE.value
+                    is_masked = True if action != 'NONE' else False
+                    level = info['sensitivity_level']
+                else:
+                    action = 'NONE'
+                    is_masked = False
+                    level = SensitivityLevel.NONE.value
+                accessed_columns.append({
+                    'column_name': col,
+                    'action': action,
+                    'sensitivity_level': level,
+                    'is_masked': is_masked,
+                })
+
+            context_details = {
+                "accessed_columns": accessed_columns,
+                "total_columns_accessed": len(accessed_columns),
+            }
+
+            sql_insert_audit_log = """
+                INSERT INTO policy_engine_audit_logs (user_role, target_table, context_details)
+                VALUES (:user_role, :table_name, :context_details);
+            """
+            params = {
+                "user_role": user_role.value,
+                "table_name": table_name,
+                "context_details": json.dumps(context_details),
+            }
+            self.pg_client.execute_non_query(sql_insert_audit_log, params)
+            policy_engine_logger.info(f"Audit log written for user role {user_role} on table {table_name}")
+        except Exception as e:
+            policy_engine_logger.error(f"Error writing audit log: {e}")
+
 
     def _apply_dynamic_masking(self, df_raw: DataFrame, policies: list):
         """
@@ -90,7 +142,7 @@ class PolicyEngine:
         # If request to scan specific table
         else:
             tables_to_process = [table_name_clean]
-            if selected_columns is None or len(selected_columns) == 0 or "*" in selected_columns:
+            if selected_columns is None or len(selected_columns) == 0:
                 actual_select_fields = ["*"]
             else:
                 actual_select_fields = selected_columns
@@ -116,6 +168,10 @@ class PolicyEngine:
                 # Apply masking
                 df_secure = self._apply_dynamic_masking(df_raw, policies)
                 result_dataframes.append(df_secure)
+
+                # Write audit log to db
+                self._write_audit_log(user_role, t_name, df_raw.columns, policies)
+
             except Exception as e:
                 logger.error(f"Error processing table {t_name}: {e}")
                 continue

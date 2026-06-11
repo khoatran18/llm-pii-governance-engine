@@ -60,7 +60,7 @@ if __name__ == "__main__":
     # CASE 1: Data Analyst (ANALYST) queries the table WITHOUT passing columns
     # System must automatically discover all columns and apply the vertical masking matrix [cite: 2, 44]
     # ---------------------------------------------------------------------------
-    analyst_role = UserRole.ANALYST
+    analyst_role = UserRole.AUDITOR
 
     policy_engine_logger.info(
         f"\n>>> [CASE 1] Executing automated column query for {analyst_role.name} on table '{test_table}'")
