@@ -69,6 +69,7 @@ services:
       - test-network
     volumes:
       - .:/app
+      - spark_master_temp:/tmp/spark-temp
     user: root
     command: >
       /bin/bash -c "
@@ -86,6 +87,7 @@ services:
       - test-network
     volumes:
       - .:/app
+      - spark_worker_temp:/tmp/spark-temp
     user: root
     depends_on:
       - spark-master
@@ -119,6 +121,10 @@ volumes:
     name: minio_data
   grafana_data:
     name: grafana_data
+  spark_master_temp:
+    name: spark_master_temp
+  spark_worker_temp:
+    name: spark_worker_temp
 
 networks:
   test-network:

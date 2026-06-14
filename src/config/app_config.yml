@@ -33,9 +33,11 @@ spark:
   iceberg_catalog_name: "iceberg"
   executor_memory: "1g"
   driver_memory: "1g"
+  executor_cores: 1
+  cores_max: 2
   iceberg_db_name: "iceberg_data"
   load_job_name: "CSV_to_Iceberg_JDBC_Job"
-  csv_folder: "/app/data/csv/*.csv"
+  csv_folder: "/app/data/production/*.csv"
 
 trino:
   host: "trino"
@@ -67,23 +69,3 @@ governance:
   scanning_pipeline:
     - "regex"
     - "llm"
-
-  # Định nghĩa các nhãn bảo mật dữ liệu PII
-  pii_classification:
-    HIGH_PII:
-      - "phone_number"
-      - "credit_card"
-      - "citizen_id" # CCCD
-    MEDIUM_PII:
-      - "email"
-      - "full_name"
-      - "birth_date"
-    LOW:
-      - "gender"
-      - "address"
-
-  masking_strategies:
-    phone_number: "REDACT_LAST_4" # Che 4 số cuối: 098765****
-    credit_card: "MASK_ALL_EXCEPT_LAST_4" # Che hết chừa 4 số cuối: ************1234
-    email: "MASK_DOMAIN" # Che tên miền: khoa@****.com
-    citizen_id: "HASH_SHA256" # Băm luôn chuỗi bảo mật thành mã hex

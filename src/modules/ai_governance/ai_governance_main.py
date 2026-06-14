@@ -19,17 +19,18 @@ from src.modules.ai_governance.pipeline import AIGovernancePipeline
 setup_logging()
 logger = logging.getLogger(__name__)
 
-def main(target_table: str = ""):
+def ai_governance_main(target_table: str = "", config = None):
     logger.info("Starting AI Governance Pipeline...")
 
     # 1. Load config
     logger.info("Loading config...")
-    try:
-        config = load_config()
-        logger.info("Config loaded successfully.")
-    except Exception as e:
-        logger.error("Failed to load config.", exc_info=True)
-        return
+    if not config:
+        try:
+            config = load_config()
+            logger.info("Config loaded successfully.")
+        except Exception as e:
+            logger.error("Failed to load config.", exc_info=True)
+            return
 
     os.environ["AWS_REGION"] = config["storage"]["minio"]["region"]
 
@@ -40,7 +41,7 @@ def main(target_table: str = ""):
     logger.info("Infrastructure connected successfully.")
 
     logger.info("Initializing AI Governance Pipeline...")
-    iceberg_sampler = IcebergTableSampler(spark_session)
+    iceberg_sampler = IcebergTableSampler(spark_session, config)
     llm_provider = LLMFactory.get_llm_provider(config)
     llm_scanner = LLMTableScanner(llm_provider, max_retries=config["llm"]["max_retries"])
     pipeline = AIGovernancePipeline(
@@ -71,7 +72,7 @@ def main(target_table: str = ""):
 
 
 if __name__ == "__main__":
-    main(target_table="")
+    ai_governance_main(target_table="")
 
 
 

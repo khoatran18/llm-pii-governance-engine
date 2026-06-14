@@ -13,8 +13,9 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 class IcebergTableSampler:
-    def __init__(self, spark: SparkSession):
+    def __init__(self, spark: SparkSession, config: dict):
         self.spark = spark
+        self.config = config
 
     def extract_table_schema_and_sampler(self, table_fqn: str, sample_size: int = 30):
         """
@@ -37,7 +38,10 @@ class IcebergTableSampler:
             df = self.spark.read.format("iceberg").option("inferSchema", "false").load(table_fqn)
             spark_schema = df.schema
 
-            sample_df = df.sample(withReplacement=False, fraction=sample_size * 5 / df.count()).limit(sample_size * 3)
+            raw_fraction = (sample_size * 5) / df.count()
+            calculated_fraction = min(raw_fraction, 1.0)
+            sample_df = df.sample(withReplacement=False, fraction=calculated_fraction).limit(sample_size * 3)
+            # sample_df = df.sample(withReplacement=False, fraction=sample_size * 5 / df.count()).limit(sample_size * 3)
             extracted_columns_metadata = []
 
             # Extract schema and sample data for each column
@@ -69,8 +73,8 @@ class IcebergTableSampler:
 
 
 if __name__ == "__main__":
-    os.environ["AWS_REGION"] = "us-east-1"
     config = load_config()
+    os.environ["AWS_REGION"] = config["storage"]["minio"]["region"]
     # Check /etc/hosts to see if the host is in there: 127.0.0.1 minio postgres spark-master
     spark = get_spark_iceberg_jdbc(config)
 
@@ -78,7 +82,7 @@ if __name__ == "__main__":
     db_name = config["spark"]["iceberg_db_name"]
     full_table_path = f"{config['spark']['iceberg_catalog_name']}.{db_name}.hr_employees"
 
-    sampler = IcebergTableSampler(spark)
+    sampler = IcebergTableSampler(spark, config)
     sample_data = sampler.extract_table_schema_and_sampler(full_table_path, sample_size=10)
 
     print("Sample Data:")

@@ -22,7 +22,7 @@ from src.core.dtos.enums import SensitivityTag
 # from src.core.dtos.enums import SensitivityTag, SensitivityLevel
 
 # ── Config ────────────────────────────────────────────────────────────────────
-OUTPUT_DIR = Path(__file__).parent.parent.parent.parent / "data" / "csv"
+OUTPUT_DIR = Path(__file__).parent.parent.parent.parent / "data" / "production"
 SEED       = 42
 random.seed(SEED)
 
@@ -259,10 +259,10 @@ def make_salary() -> tuple:
 def make_ip() -> tuple:
     return ".".join(str(random.randint(1, 254)) for _ in range(4)), SensitivityTag.NONE
 
-def make_date(start_year: int = 2020, end_year: int = 2024) -> tuple:
-    start = date(start_year, 1, 1)
-    end   = date(end_year, 12, 31)
-    return start + timedelta(days=random.randint(0, (end - start).days)), SensitivityTag.NONE
+# def make_date(start_year: int = 2020, end_year: int = 2024) -> tuple:
+#     start = date(start_year, 1, 1)
+#     end   = date(end_year, 12, 31)
+#     return start + timedelta(days=random.randint(0, (end - start).days)), SensitivityTag.NONE
 
 def make_household_no() -> tuple:
     return f"{rand(PROVINCE_CODES)}/{random.randint(100_000, 999_999)}", SensitivityTag.NONE
@@ -304,7 +304,6 @@ def build_citizen_row() -> dict:
         "gioi_tinh"          : rand(["Nam", "Nữ"]),
         "sdt_chinh"          : make_phone(),
         "dia_chi_cu_tru"     : make_address(),
-        "tinh_thanh"         : make_province(),
         "quoc_tich"          : rand(NATIONALITIES),
         "ref_ext"            : make_email(name),
         "so_phu"             : make_phone(),
@@ -312,17 +311,16 @@ def build_citizen_row() -> dict:
         "tinh_trang_hn"      : rand(MARITAL_STATUSES),
         "trinh_do_hv"        : rand(EDUCATION_LEVELS),
         "nghe_nghiep"        : rand(OCCUPATIONS),
-        "noi_sinh"           : make_province(),
+        "noi_sinh"           : make_address(),
         "so_nguoi_phu_thuoc" : random.randint(0, 5),
-        "ngay_cap_cccd"      : make_date(2015, 2024),
+        "acc_status"         : rand(["Đã kích hoạt", "Chưa kích hoạt", "Bị khóa"]),
         "dan_toc"            : rand(ETHNICITIES),
-        "created_at"         : make_date(2022, 2024),
+        "e_type"             : rand(["Thường trú", "Tạm trú", "Thông báo lưu trú"]),
+        "xac_thuc"           : rand(["VNeID định danh mức 2", "SMS OTP", "Thẻ CCCD gắn chíp", "Chữ ký số công cộng"]),
     }
 
 def build_admin_row() -> dict:
     name        = make_full_name()
-    submitted   = make_date(2021, 2024)
-    deadline    = submitted[0] + timedelta(days=random.randint(7, 60)) if isinstance(submitted, tuple) else submitted + timedelta(days=random.randint(7, 60))
     dob         = make_dob()
     cccd        = make_cccd(dob)
     return {
@@ -332,20 +330,20 @@ def build_admin_row() -> dict:
         "val_02"             : make_phone(),
         "loai_ho_so"         : rand(DOC_TYPES),
         "co_quan_tiep_nhan"  : rand(GOV_AGENCIES),
-        "ngay_nop"           : submitted,
-        "han_giai_quyet"     : deadline,
         "trang_thai_xu_ly"   : rand(DOC_STATUSES),
         "ext_info"           : make_email(name),
         "so_bien_lai"        : make_id("BL"),
         "so_bao_hiem"        : make_bhyt_no(),
         "phi_ho_so"          : rand([0, 50_000, 100_000, 200_000]),
         "nhan_vien_xu_ly"    : make_id("NV"),
-        "dia_chi_lien_lac"   : make_address(),
         "meta_addr"          : make_address(),
         "so_ho_khau"         : make_household_no(),
         "kenh_tiep_nhan"     : rand(RECEPTION_CHANNELS),
         "ket_qua_xu_ly"      : rand(PROCESSING_RESULTS),
-        "updated_at"         : make_date(2022, 2024),
+        "ma_loai_thu_tuc"    : f"PROC-{random.randint(100, 999)}",
+        "phong_tiep_nhan"    : f"Cửa số {random.randint(1, 15)}",
+        "do_uu_tien_ho_so"   : rand(["Thường", "Khẩn", "Thượng khẩn"]),
+        "re_type"            : rand(["Trực tiếp tại quầy", "Bưu điện chuyển phát", "Cổng dịch vụ công trực tuyến"]),
     }
 
 def build_hr_row() -> dict:
@@ -368,22 +366,21 @@ def build_hr_row() -> dict:
         "ten_ngan_hang"      : rand(BANKS),
         "so_quyet_dinh"      : make_decision_no(),
         "ins_num"            : make_bhyt_no(),
-        "ngay_vao_lam"       : make_date(2010, 2024),
         "loai_hop_dong"      : rand(CONTRACT_TYPES),
+        "status"             : rand(["Chính thức", "Thử việc", "Tạm hoãn", "Đã nghỉ việc"]),
         "gender"             : rand(["male", "female"]),
         "manager_id"         : make_id("EMP"),
-        "created_at"         : make_date(2022, 2024),
+        "bac_luong"          : f"LEVEL-{random.randint(1, 7)}",
     }
 
 def build_medical_row() -> dict:
     name = make_full_name()
     dob = make_dob()
     cccd = make_cccd(dob)
-    visit_date = make_date(2022, 2024)
     return {
         "record_id"          : make_id("MED"),
         "so_cccd_benh_nhan"  : cccd,
-        "ho_ten_benh_nhan"   : name,
+        "ref"                : name,
         "ngay_sinh"          : dob,
         "gioi_tinh"          : random.choice(["Nam", "Nữ"]),
         "nhom_mau"           : random.choice(["A", "B", "O", "AB"]),
@@ -399,8 +396,8 @@ def build_medical_row() -> dict:
         "can_nang_kg"        : random.randint(45, 90),
         "huyet_ap"           : f"{random.randint(110, 140)}/{random.randint(70, 90)}",
         "bac_si_dieu_tri"    : make_full_name(),
-        "ngay_kham"          : visit_date,
-        "ghi_chu_ls"         : "Bệnh nhân tỉnh táo, tiếp xúc tốt.",
+        "so_phong_kham"      : f"P-{random.randint(101, 505)}",
+        "hinh_thuc_ra_vien": rand(["Cho về", "Chuyển viện", "Nhập viện điều trị"]),
     }
 
 # ── ENGINE — Sửa đổi hàm bóc tách dữ liệu linh hoạt ───────────────────────────
@@ -442,6 +439,7 @@ def write_csv_and_metadata(filename: str, row_fn, n_rows: int) -> None:
     metadata = {
         "table_name": filename,
         "total_columns": len(fieldnames),
+        "total_rows": n_rows,
         "columns": columns_metadata
     }
 

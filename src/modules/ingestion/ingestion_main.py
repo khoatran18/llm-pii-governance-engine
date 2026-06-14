@@ -1,5 +1,7 @@
+import argparse
 import logging
 import os
+import sys
 
 from src.config.loader import load_config
 from src.config.logging import setup_logging
@@ -9,17 +11,22 @@ from src.modules.ingestion.spark_loader import SparkLoader
 setup_logging()
 logger = logging.getLogger(__name__)
 
-def main():
+def ingestion_main(csv_folder: str = None, config: dict = None):
     logger.info("Starting Spark Load Pipeline...")
 
     # 1. Load config
     logger.info("Loading config...")
-    try:
-        config = load_config()
-        logger.info("Config loaded successfully.")
-    except Exception as e:
-        logger.error("Failed to load config.", exc_info=True)
-        return
+    if not config:
+        try:
+            config = load_config()
+            logger.info("Config loaded successfully.")
+        except Exception as e:
+            logger.error("Failed to load config.", exc_info=True)
+            return
+
+    if csv_folder:
+        logger.info(f"Overriding CSV folder with: {csv_folder}")
+        config["spark"]["csv_folder"] = csv_folder
 
     os.environ["AWS_REGION"] = config["storage"]["minio"]["region"]
 
@@ -43,4 +50,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Ingestion Main")
+    parser.add_argument("--csv_folder", type=str, default=None, help="Path to the CSV folder")
+
+    args = parser.parse_args()
+    ingestion_main(csv_folder=args.csv_folder)

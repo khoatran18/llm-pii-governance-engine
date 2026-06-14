@@ -70,11 +70,11 @@ class GovernanceLLMPrompts:
        - Sample Data Patterns: Text strings containing capitalized Vietnamese personal names, often composed of 2 to 4 words (e.g., "Nguyễn Văn An", "Trần Minh Khoa"). CRITICAL: the actual cell values must be personal names — if the column stores role labels or codes (e.g., "Giáo viên", "HS001") instead of names, classify as NONE.
 
     7. ADDRESS (Sensitivity: LOW)
-       - Description: Physical residential addresses, permanent, or temporary locations.
+       - Description: Physical residential addresses, permanent, or temporary locations. Can range from a full hierarchical address to just a province or city name.
        - DATA-FIRST WARNING: Column names for this tag can be obfuscated or generic. You MUST base your decision primarily on the actual sample data pattern, not the column name alone.
        - Column Name Cues: 'dia_chi', 'address', 'cu_tru', 'thuong_tru', 'res_data', 'meta_addr'.
-       - Sample Data Patterns: Long text strings containing hierarchical geographic components like street, ward, district, province (e.g., "123 Đường Lê Lợi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh").
-
+       - Sample Data Patterns: Text strings containing geographic location information at any level of detail — from a full hierarchical address (street, ward, district, province) down to just a district or province name (e.g., "123 Đường Lê Lợi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"; "Quận Cầu Giấy, Hà Nội"; "Tỉnh Nghệ An"; "Bình Dương").
+    
     8. DOB (Sensitivity: LOW)
        - Description: Date of birth or other sensitive personal dates.
        - DATA-FIRST WARNING: Column names for this tag can be obfuscated or generic. You MUST base your decision primarily on the actual sample data pattern, not the column name alone.
@@ -91,7 +91,7 @@ class GovernanceLLMPrompts:
     1. Full-Table Context: Review Category 1 to perform a process of elimination on Category 2.
     2. Data Over Name Rule (Anti-Misleading): Column names can be highly misleading, obfuscated, or completely generic (e.g., 'c01', 'c03', 'hhd', 'val_02', 'm_val'). You MUST prioritize the semantic meaning and patterns of the actual sample data over the literal column name. If the column name says one thing but the data clearly represents another PII type, classify based on the DATA.
     3. Conservative Classification: For columns in CATEGORY 2, default assumption is NONE unless sample data provides clear, unambiguous evidence of a PII type. Do NOT attempt to find a tag — let the data speak for itself. NONE is a valid and preferred outcome when evidence is weak or ambiguous.
-    4. Majority Vote Rule: If LESS THAN 60% of the sample data rows match the expected pattern of a PII type, you MUST return NONE — regardless of how strongly the column name implies that PII type. A partial match is treated as NO match.
+    4. Majority Vote Rule: If LESS THAN 50% of the sample data rows match the expected pattern of a PII type, you MUST return NONE — regardless of how strongly the column name implies that PII type. A partial match is treated as NO match.
     5. Target Isolation Principle: Your final JSON output MUST ONLY contain the columns listed in CATEGORY 2 (UNDETERMINED COLUMNS). Do not re-evaluate or include columns from CATEGORY 1 in the final output object.
     6. Strict Format Validation Rule: Even if a column name strongly implies a PII type, if the actual sample data format does NOT match the expected pattern for that PII type, you MUST classify it as "NONE". Do not force-fit data into a PII tag just because the column name suggests it.
     7. Confidence Threshold Gate: You MUST assign a PII tag ONLY IF your internal confidence_score is strictly greater than 0.7. If your confidence is 0.7 or below — due to ambiguous data, mixed patterns, weak column name signal, or any other uncertainty — you MUST fall back to "NONE" with "is_pii": false, regardless of how plausible the tag may seem. When in doubt, always default to NONE.
@@ -113,7 +113,7 @@ class GovernanceLLMPrompts:
             {{
                 "column_name": "exact_column_name_from_category_2_only",
                 "is_pii": true,
-                "suggested_tag": "Must be one of: [NAME, ADDRESS, SALARY, DOB, NONE]",
+                "suggested_tag": "Must be one of: [RESIDENT_ID, HEALTH_INSURANCE_ID, PHONE, EMAIL, NAME, ADDRESS, SALARY, DOB, NONE]",
                 "sensitivity_level": "Must be one of: [HIGH, MEDIUM, LOW, NONE]",
                 "confidence_score": 0.95,
                 "reason": "Concise reasoning in English detailing your full-table deduction logic."

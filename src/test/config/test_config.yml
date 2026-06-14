@@ -1,0 +1,214 @@
+app:
+  name: "AI-Powered Data Governance Platform"
+  env: "development" # development, staging, production
+  version: "1.0.0"
+
+# =====================================================================
+# 1. CẤU HÌNH HẠ TẦNG LƯU TRỮ VÀ DATABASE (INFRASTRUCTURE)
+# =====================================================================
+database:
+  postgres:
+    host: "postgres"
+    port: 5432
+    user: "admin"
+    password: ${POSTGRES_PASSWORD}
+    database: "main_db"
+    uri: jdbc:postgresql://postgres:5432/main_db
+
+storage:
+  minio:
+    endpoint: "http://minio:9000"
+    access_key: "minio"
+    secret_key: "${MINIO_SECRET_KEY}"
+    bucket_warehouse: "s3a://warehouse/"
+    region: "us-east-1"
+
+# =====================================================================
+# 2. CẤU HÌNH CÁC ENGINE TÍNH TOÁN (COMPUTE ENGINES)
+# =====================================================================
+spark:
+  master_container_name: "spark-master"
+  master_url: "spark://spark-master:7077"
+  app_name: "Lakehouse_Ingestion_Job_Test"
+  iceberg_catalog_name: "iceberg"
+  executor_memory: "1g"
+  driver_memory: "1g"
+  executor_cores: 1
+  cores_max: 2
+  iceberg_db_name: "iceberg_data"
+  load_job_name: "CSV_to_Iceberg_JDBC_Job"
+  csv_folder: "/app/data/test/*.csv"
+
+trino:
+  host: "trino"
+  port: 8080
+  user: "admin"
+  catalog: "iceberg"
+
+# =====================================================================
+# 3. CẤU HÌNH DỊCH VỤ DÙNG CHUNG LLM (SHARED SERVICE)
+# =====================================================================
+llm:
+  provider: "deepseek"
+  model: "deepseek-chat"
+#  model: "deepseek-v4-pro"
+  temperature: 0.0
+  max_tokens: 2048
+  max_retries: 3
+  openai_api_key: "${OPENAPI_API_KEY}"
+  deepseek_api_key: "${DEEPSEEK_API_KEY}"
+
+# =====================================================================
+# 4. CẤU HÌNH LUẬT QUẢN TRỊ VÀ BẢO MẬT (GOVERNANCE & POLICY)
+# =====================================================================
+governance:
+  confidence_threshold: 0.70
+  regex_sample_size: 200
+  llm_sample_size: 10
+  # Các phương thức AI quét dữ liệu (chạy từ trái qua phải)
+  scanning_pipeline:
+    - "regex"
+    - "llm"
+
+data_test:
+  table_name: "test_suite"
+  total_rows: 5000
+  columns_config:
+    ### REGEX TAGS
+    # RESIDENT_ID:
+    - column_name: "cccd_clean"
+      sensitivity_tag: "RESIDENT_ID"
+      match_percentage: 100
+      regex_status: "SUCCESS"
+      detection_method: "REGEX"
+      expected_regex_score: 1.0
+    - column_name: "cccd_noise_70"
+      sensitivity_tag: "RESIDENT_ID"
+      match_percentage: 70
+      regex_status: "SUCCESS"
+      detection_method: "REGEX"
+      expected_regex_score: 0.7
+
+    # PHONE:
+    - column_name: "phone_clean"
+      sensitivity_tag: "PHONE"
+      match_percentage: 100
+      regex_status: "SUCCESS"
+      detection_method: "REGEX"
+      expected_regex_score: 1.0
+    - column_name: "phone_noise_70"
+      sensitivity_tag: "PHONE"
+      match_percentage: 70
+      regex_status: "SUCCESS"
+      detection_method: "REGEX"
+      expected_regex_score: 0.7
+
+    # EMAIL:
+    - column_name: "email_clean"
+      sensitivity_tag: "EMAIL"
+      match_percentage: 100
+      regex_status: "SUCCESS"
+      detection_method: "REGEX"
+      expected_regex_score: 1.0
+    - column_name: "email_noise_70"
+      sensitivity_tag: "EMAIL"
+      match_percentage: 70
+      regex_status: "SUCCESS"
+      detection_method: "REGEX"
+      expected_regex_score: 0.7
+    - column_name: "e8_n_65"
+      sensitivity_tag: "EMAIL"
+      match_percentage: 65
+      regex_status: "UNDETERMINED"
+      detection_method: "HYBRID"
+      expected_regex_score: 0.65
+
+    # HEALTH_INSURANCE_ID:
+    - column_name: "health_insurance_id_clean"
+      sensitivity_tag: "HEALTH_INSURANCE_ID"
+      match_percentage: 100
+      regex_status: "SUCCESS"
+      detection_method: "REGEX"
+      expected_regex_score: 1.0
+    - column_name: "health_insurance_id_noise_70"
+      sensitivity_tag: "HEALTH_INSURANCE_ID"
+      match_percentage: 70
+      regex_status: "SUCCESS"
+      detection_method: "REGEX"
+      expected_regex_score: 0.7
+
+    ### LLM TAGS
+    - column_name: "c03"
+      sensitivity_tag: "NAME"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "LLM"
+      expected_regex_score: 0.0
+    - column_name: "o_text"
+      sensitivity_tag: "ADDRESS"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "LLM"
+      expected_regex_score: 0.0
+    - column_name: "m_val"
+      sensitivity_tag: "SALARY"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "LLM"
+      expected_regex_score: 0.0
+    - column_name: "info"
+      sensitivity_tag: "DOB"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "LLM"
+      expected_regex_score: 0.0
+
+    ### NONE TAGS
+    - column_name: "sys_record_id"
+      sensitivity_tag: "NONE"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "HYBRID"
+      expected_regex_score: 0.0
+    - column_name: "device_ip_address"
+      sensitivity_tag: "NONE"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "HYBRID"
+      expected_regex_score: 0.0
+    - column_name: "user_agent_hash"
+      sensitivity_tag: "NONE"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "HYBRID"
+      expected_regex_score: 0.0
+    - column_name: "status_code"
+      sensitivity_tag: "NONE"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "HYBRID"
+      expected_regex_score: 0.0
+    - column_name: "is_active"
+      sensitivity_tag: "NONE"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "HYBRID"
+      expected_regex_score: 0.0
+    - column_name: "retry_count"
+      sensitivity_tag: "NONE"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "HYBRID"
+      expected_regex_score: 0.0
+    - column_name: "tx_amount"
+      sensitivity_tag: "NONE"
+      match_percentage: 100
+      regex_status: "UNDETERMINED"
+      detection_method: "HYBRID"
+      expected_regex_score: 0.0
+
+test_info:
+  test_performance:
+    ai_governance_pipeline_duration_seconds: 30
+    policy_engine_overhead_percentages: 20
+    get_mask_columns_latency_ms: 500.0

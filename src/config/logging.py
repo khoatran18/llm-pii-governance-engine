@@ -6,6 +6,20 @@ from pathlib import Path
 
 from src.config.loader import load_config
 
+class TestReportFilter(logging.Filter):
+    def filter(self, record):
+        message = record.getMessage()
+        return (
+            "===" in message or
+            "---" in message or
+            "Start" in message or
+            "Latency" in message or
+            "Overhead" in message or
+            "Duration" in message or
+            "Average" in message or
+            "Total" in message or
+            "Result" in message
+        )
 
 def setup_logging():
     """
@@ -26,6 +40,9 @@ def setup_logging():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     logs_dir = ROOT_DIR / "outputs" / timestamp / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
+
+    test_logs_dir = logs_dir / "test_runs"
+    test_logs_dir.mkdir(parents=True, exist_ok=True)
 
     # 3. Set up log format
     log_format = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
@@ -82,12 +99,19 @@ def setup_logging():
         policy_engine_file_handler.setFormatter(formatter)
         policy_engine_logger.addHandler(policy_engine_file_handler)
 
-    # 7. For Test
+    # 8. For Test
     test_logger = logging.getLogger("test")
     test_logger.setLevel(log_level)
     test_logger.propagate = True
 
     if not test_logger.handlers:
-        test_file_handler = logging.FileHandler(str(logs_dir / "test.log"), mode="a", encoding="utf-8")
+        # Raw test log
+        test_file_handler = logging.FileHandler(str(test_logs_dir / "test.log"), mode="a", encoding="utf-8")
         test_file_handler.setFormatter(formatter)
         test_logger.addHandler(test_file_handler)
+
+        # # Report log
+        # test_report_handler = logging.FileHandler(str(test_logs_dir / "test_report.log"), mode="a", encoding="utf-8")
+        # test_report_handler.setFormatter(formatter)
+        # test_report_handler.addFilter(TestReportFilter())
+        # test_logger.addHandler(test_report_handler)

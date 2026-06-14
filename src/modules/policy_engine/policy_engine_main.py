@@ -18,17 +18,18 @@ setup_logging()
 logger = logging.getLogger(__name__)
 policy_engine_logger = logging.getLogger("policy_engine")
 
-def main(table_name: str, selected_columns: list, user_role: UserRole):
+def policy_engine_main(table_name: str, selected_columns: list, user_role: UserRole, config: dict = None):
     policy_engine_logger.info("Starting Policy Engine Pipeline...")
 
     # 1. Load config
     policy_engine_logger.info("Loading config...")
-    try:
-        config = load_config()
-        policy_engine_logger.info("Config loaded successfully.")
-    except Exception as e:
-        policy_engine_logger.error("Failed to load config.", exc_info=True)
-        return
+    if not config:
+        try:
+            config = load_config()
+            policy_engine_logger.info("Config loaded successfully.")
+        except Exception as e:
+            policy_engine_logger.error("Failed to load config.", exc_info=True)
+            return
 
     os.environ["AWS_REGION"] = config["storage"]["minio"]["region"]
 
@@ -64,7 +65,7 @@ if __name__ == "__main__":
 
     policy_engine_logger.info(
         f"\n>>> [CASE 1] Executing automated column query for {analyst_role.name} on table '{test_table}'")
-    secure_dfs_case1 = main(
+    secure_dfs_case1 = policy_engine_main(
         table_name=None,
         selected_columns=[],
         user_role=analyst_role

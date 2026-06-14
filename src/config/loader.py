@@ -8,10 +8,12 @@ from dotenv import load_dotenv
 
 
 @lru_cache(maxsize=1)
-def load_config() -> dict:
+def load_config(config_path = None, env_path = None) -> dict:
     # Get path
-    config_path = Path(__file__).parent / "app_config.yml"
-    env_path = Path(__file__).parent.parent.parent / ".env"
+    if not config_path:
+        config_path = Path(__file__).parent / "app_config.yml"
+    if not env_path:
+        env_path = Path(__file__).parent.parent.parent / ".env"
 
     # Load .env
     if os.path.exists(env_path):

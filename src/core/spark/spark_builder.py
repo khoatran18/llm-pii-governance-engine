@@ -55,6 +55,10 @@ def get_spark_iceberg_jdbc(config: dict):
                     .config("spark.jars.packages", ",".join(PACKAGES))
                     .config("spark.executor.memory", spark_cfg["executor_memory"])
                     .config("spark.driver.memory", spark_cfg["driver_memory"])
+                    .config("spark.executor.cores", spark_cfg["executor_cores"])
+                    .config("spark.cores.max", spark_cfg["cores_max"])
+                    .config("spark.cleaner.periodicGC.interval", "1min")
+                    .config("spark.local.dir", "/tmp/spark-temp")
                     .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 
                     # Metadata layer via JDBC
