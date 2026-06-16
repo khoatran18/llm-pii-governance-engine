@@ -20,7 +20,7 @@ def test_policy_engine_overhead(test_config):
     Evaluates the full end-to-end lifecycle including config parsing, database connection, and SparkSession instantiation.
     Supports 4 dynamic execution strategies to manipulate caching advantages and analyze OS Page Cache impact.
     """
-    # Options:
+
     # 1. "NORMAL_FIRST_POLICY_SHUFFLE"  : Normal runs first, then the 3 roles are shuffled.
     # 2. "POLICY_SHUFFLE_NORMAL_LAST"   : The 3 roles are shuffled first, then Normal runs last.
     # 3. "PURE_SHUFFLE_ALL"             : All 4 execution types are completely shuffled together.
@@ -30,10 +30,10 @@ def test_policy_engine_overhead(test_config):
     # Only applicable if EXECUTION_STRATEGY is EXPLICIT_MANUAL_ORDER
     MANUAL_SEQUENCE = ["NORMAL", "ANALYST", "AUDITOR", "ADMIN"]
 
-    test_data_config = test_config["data_test"]
+    test_data_config = test_config["test_suite"]
     table_name = test_data_config["table_name"]
     table_fqn = get_table_fqn(test_config, table_name)
-    max_overhead_percentages = test_config["test_info"]["test_performance"]["policy_engine_overhead_percentages"]
+    max_overhead_percentages = test_data_config["test_performance"]["policy_engine_overhead_percentages"]
 
     test_logger.info("\n" + "=" * 500)
     test_logger.info("-" * 25 + f"[PERFORMANCE] Starting Policy Engine overhead benchmark with strategy: {EXECUTION_STRATEGY}" + "-" * 25)

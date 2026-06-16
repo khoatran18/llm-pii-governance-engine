@@ -19,7 +19,7 @@ def test_regex_scanner(spark_session, test_config):
     - Computes regex patterns compliance and confidence metrics.
     - Validates calculated confidence scores against deterministic thresholds.
     """
-    test_data_config = test_config["data_test"]
+    test_data_config = test_config["test_suite"]
     table_name = test_data_config["table_name"]
     columns_config = test_data_config["columns_config"]
     total_rows = test_data_config["total_rows"]

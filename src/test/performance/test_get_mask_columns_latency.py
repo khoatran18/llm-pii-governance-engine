@@ -18,14 +18,14 @@ def test_policy_determination_latency(spark_session, pg_client, test_config):
     - Strictly measures only the database policy lookup and metadata rules mapping.
     - Completely excludes Spark metadata/catalog parsing duration from the SLA metric.
     """
-    test_data_config = test_config["data_test"]
+    test_data_config = test_config["test_suite"]
     table_name = test_data_config["table_name"]
     table_fqn = get_table_fqn(test_config, table_name)
 
     test_logger.info("\n" + "=" * 500)
     test_logger.info("-" * 25 + f"[PERFORMANCE] Starting Get Mask Columns latency benchmark" + "-" * 25)
 
-    max_latency_ms = float(test_config["test_info"]["test_performance"]["get_mask_columns_latency_ms"])
+    max_latency_ms = float(test_data_config["test_performance"]["get_mask_columns_latency_ms"])
     NUM_CYCLES = 5
 
     # Initialize production component instances without modifying their source code

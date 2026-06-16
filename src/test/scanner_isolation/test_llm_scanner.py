@@ -27,7 +27,7 @@ def test_lm_scan(spark_session, test_config, llm_scanner, run_attempt):
     - Formulates complete structured semantic prompt context structures.
     - Validates the LLM classification results against target classifications.
     """
-    test_data_config = test_config["data_test"]
+    test_data_config = test_config["test_suite"]
     table_name = test_data_config["table_name"]
     columns_config = test_data_config["columns_config"]
     total_rows = test_data_config["total_rows"]

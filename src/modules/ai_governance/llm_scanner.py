@@ -25,11 +25,9 @@ def parse_llm_response(raw_text: str) -> TableLLMScanResponse:
 
     # If the response starts with ```json, remove the first line and the last line
     if clean_text.startswith("```"):
-        # Remove the first line if it's just ```json'
         lines = clean_text.splitlines()
         if lines[0].startswith("```"):
             lines = lines[1:]
-        # Remove last line if it's just ```'
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         clean_text = "\n".join(lines).strip()

@@ -8,14 +8,14 @@ setup_logging()
 test_logger = logging.getLogger("test")
 
 def test_ai_governance_pipeline_duration(test_config):
-    test_data_config = test_config["data_test"]
+    test_data_config = test_config["test_suite"]
     table_name = test_data_config["table_name"]
 
     test_logger.info("\n" + "=" * 500)
     test_logger.info("-" * 25 + "[PERFORMANCE] Starting AI Governance Pipeline latency benchmark" + "-" * 25)
     test_logger.info(f"Target Table: {table_name}")
 
-    max_duration_seconds = test_config["test_info"]["test_performance"]["ai_governance_pipeline_duration_seconds"]
+    max_duration_seconds = test_data_config["test_performance"]["ai_governance_pipeline_duration_seconds"]
 
     # Start timer
     start_perf_time = time.perf_counter()

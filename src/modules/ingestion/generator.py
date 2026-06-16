@@ -1,12 +1,3 @@
-"""
-gen_data.py — Generate fake PII data for 4 CSV tables (5000 rows each)
-Structure:
-  - LOOKUP : static value pools (names, addresses, …)  ← edit sample values here
-  - GENERATORS : functions that produce one typed value  ← edit formats here
-  - SCHEMAS : row-builder for each table                ← add/remove columns here
-  - ENGINE : build_csv + main                           ← do not touch
-"""
-
 import csv
 import json
 import random
@@ -18,10 +9,7 @@ from pathlib import Path
 
 from src.core.dtos.enums import SensitivityTag
 
-# Giả định Enum được import chính xác từ hệ thống của bạn
-# from src.core.dtos.enums import SensitivityTag, SensitivityLevel
-
-# ── Config ────────────────────────────────────────────────────────────────────
+# Config
 OUTPUT_DIR = Path(__file__).parent.parent.parent.parent / "data" / "production"
 SEED       = 42
 random.seed(SEED)
@@ -32,8 +20,6 @@ TABLE_SIZES = {
     "hr_employees.csv"           : 5000,
     "medical_records.csv"        : 5000,
 }
-
-# ── LOOKUP — edit pools here ───────────────────────────────────────────────────
 
 LAST_NAMES  = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan",
                "Vũ", "Đặng", "Bùi", "Đỗ", "Hồ", "Ngô", "Dương", "Lý"]
@@ -195,8 +181,6 @@ HOSPITALS = [
 
 PROVINCE_CODES = ["001","002","004","006","008","010","011","012","014","015","017","019","020","022","024","025","026","027","030","031","033","034","035","036","037","038","040","042","044","045","046","048","049","051","052","054","056","058","060","062","064","066","067","068","070","072","074","075","077","079","080","082","083","084","086","087","089","091","092","093","094","095","096"]
 
-# ── GENERATORS ────────────────────────────────────────────────────────────────
-
 def rand(lst):
     return random.choice(lst)
 
@@ -290,8 +274,6 @@ def make_emp_badge_id() -> tuple:
     return f"NV-{year}-{seq}", SensitivityTag.NONE
 
 
-# ── SCHEMAS ───────────────────────────────────────────────────────────────────
-
 def build_citizen_row() -> dict:
     name = make_full_name()
     dob = make_dob()
@@ -334,7 +316,7 @@ def build_admin_row() -> dict:
         "ext_info"           : make_email(name),
         "so_bien_lai"        : make_id("BL"),
         "so_bao_hiem"        : make_bhyt_no(),
-        "phi_ho_so"          : rand([0, 50_000, 100_000, 200_000]),
+        "process_days"       : rand([3, 5, 7, 15, 30]),
         "nhan_vien_xu_ly"    : make_id("NV"),
         "meta_addr"          : make_address(),
         "so_ho_khau"         : make_household_no(),
@@ -400,8 +382,6 @@ def build_medical_row() -> dict:
         "hinh_thuc_ra_vien": rand(["Cho về", "Chuyển viện", "Nhập viện điều trị"]),
     }
 
-# ── ENGINE — Sửa đổi hàm bóc tách dữ liệu linh hoạt ───────────────────────────
-
 TABLES = [
     ("citizen_info.csv",           build_citizen_row),
     ("administrative_records.csv", build_admin_row),
@@ -411,8 +391,7 @@ TABLES = [
 
 def normalize_value_and_tag(item) -> tuple:
     """
-    Hàm chuẩn hóa: Đảm bảo bất kể hàm generator trả về tuple hay giá trị thô,
-    hệ thống đều ép về đúng chuẩn cặp định dạng: (giá_trị_thô, SensitiveTag)
+    Return (item, None) if item is not a tuple
     """
     if isinstance(item, tuple) and len(item) == 2 and isinstance(item[1], SensitivityTag):
         return item[0], item[1]

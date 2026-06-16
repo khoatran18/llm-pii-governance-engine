@@ -7,8 +7,8 @@ def test_data_ingestion(test_config):
     print("Test data ingestion")
 
     test_csv_folder = f"{test_config['spark']['csv_folder']}"
-    test_table_name = test_config["data_test"]["table_name"]
-    expected_rows = test_config["data_test"]["total_rows"]
+    test_table_name = test_config["test_suite"]["table_name"]
+    expected_rows = test_config["test_suite"]["total_rows"]
 
     try:
         ingestion_execution(csv_folder=test_csv_folder)

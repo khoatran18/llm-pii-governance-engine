@@ -57,14 +57,9 @@ if __name__ == "__main__":
 
     test_table = "citizen_info"
 
-    # ---------------------------------------------------------------------------
-    # CASE 1: Data Analyst (ANALYST) queries the table WITHOUT passing columns
-    # System must automatically discover all columns and apply the vertical masking matrix [cite: 2, 44]
-    # ---------------------------------------------------------------------------
     analyst_role = UserRole.AUDITOR
 
-    policy_engine_logger.info(
-        f"\n>>> [CASE 1] Executing automated column query for {analyst_role.name} on table '{test_table}'")
+    policy_engine_logger.info(f"Executing automated column query for {analyst_role.name} on table '{test_table}'")
     secure_dfs_case1 = policy_engine_main(
         table_name=None,
         selected_columns=[],
@@ -77,46 +72,3 @@ if __name__ == "__main__":
         print(f"\n[CASE 1 RESULT] All columns fetched & dynamically secured for Role {analyst_role.name}:")
     else:
         policy_engine_logger.warning("Case 1 returned no data or an unexpected error occurred.")
-
-    # ---------------------------------------------------------------------------
-    # CASE 2: Information Security Auditor (AUDITOR) scans the entire Data Lakehouse [cite: 6, 92]
-    # Passing table_name="" triggers multi-table orchestration via Metadata Store
-    # All columns from discovered tables are automatically fetched and masked [cite: 44, 92]
-    # ---------------------------------------------------------------------------
-    # auditor_role = UserRole.AUDITOR
-    #
-    # policy_engine_logger.info(f"\n>>> [CASE 2] Executing FULL LAKEHOUSE SCAN for Role: {auditor_role.name}")
-    # secure_dfs_case2 = main(
-    #     table_name="",
-    #     selected_columns=["*"],  # Fetch all available columns across discovered tables
-    #     user_role=auditor_role
-    # )
-    #
-    # if secure_dfs_case2:
-    #     print(
-    #         f"\n[CASE 2 RESULT] Total data assets successfully secured for Auditor: {len(secure_dfs_case2)} table(s).")
-    #     for idx, df in enumerate(secure_dfs_case2):
-    #         print(f"\n--> Displaying sample secure data for Table #{idx + 1}:")
-    #         # Preview a small sample batch of rows for compliance validation
-    #         df.show(5, truncate=False)
-    # else:
-    #     policy_engine_logger.warning("Case 2 failed to discover any tables or Metadata Store catalog is empty.")
-    #
-    # # ---------------------------------------------------------------------------
-    # # CASE 3: Super Administrator (ADMIN) queries the table WITHOUT passing columns
-    # # Admin must bypass all masking rules to view raw ground-truth clear text data [cite: 148]
-    # # ---------------------------------------------------------------------------
-    # admin_role = UserRole.ADMIN
-    #
-    # policy_engine_logger.info(
-    #     f"\n>>> [CASE 3] Executing automated column query for {admin_role.name} on table '{test_table}'")
-    # secure_dfs_case3 = main(
-    #     table_name=test_table,
-    #     selected_columns=None,  # Passing None also triggers automated full-column fetch
-    #     user_role=admin_role
-    # )
-    #
-    # if secure_dfs_case3 and len(secure_dfs_case3) > 0:
-    #     # Admin bypasses masking rules to view raw ground-truth data for governance control [cite: 148]
-    #     print(f"\n[CASE 3 RESULT] Raw data visible to Administrator {admin_role.name} (Clear Text expected):")
-    #     secure_dfs_case3[0].show(truncate=False)

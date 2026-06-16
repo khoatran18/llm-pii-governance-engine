@@ -2,10 +2,7 @@ import glob
 import logging
 from pathlib import Path
 
-from src.config.loader import load_config
 from src.config.logging import setup_logging
-from src.core.spark.spark_builder import get_spark_iceberg_jdbc
-from src.modules.ai_governance.utils import get_all_table_name
 
 setup_logging()
 logger = logging.getLogger(__name__)

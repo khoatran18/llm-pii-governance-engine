@@ -87,7 +87,7 @@ def generate_column_data(column_name: str, target_tag: str, match_percentage: in
 
 def main():
     test_config = load_test_config()
-    test_data_config = test_config["data_test"]
+    test_data_config = test_config["test_suite"]
 
     table_name = test_data_config["table_name"]
     total_rows = test_data_config["total_rows"]
@@ -154,6 +154,5 @@ def main():
 
 def test_generator():
     main()
-
 
 

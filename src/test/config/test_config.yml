@@ -70,7 +70,7 @@ governance:
     - "regex"
     - "llm"
 
-data_test:
+test_suite:
   table_name: "test_suite"
   total_rows: 5000
   columns_config:
@@ -207,8 +207,24 @@ data_test:
       detection_method: "HYBRID"
       expected_regex_score: 0.0
 
-test_info:
   test_performance:
     ai_governance_pipeline_duration_seconds: 30
     policy_engine_overhead_percentages: 20
     get_mask_columns_latency_ms: 500.0
+
+  masking_policies:
+    ADMIN:
+      HIGH: "CLEAR_TEXT"
+      MEDIUM: "CLEAR_TEXT"
+      LOW: "CLEAR_TEXT"
+      NONE: "CLEAR_TEXT"
+    ANALYST:
+      HIGH: "HASH_MASK"
+      MEDIUM: "NULLIFY_MASK"
+      LOW: "HASH_MASK"
+      NONE: "CLEAR_TEXT"
+    AUDITOR:
+      HIGH: "PARTIAL_MASK"
+      MEDIUM: "PARTIAL_MASK"
+      LOW: "REDACTED_MASK"
+      NONE: "CLEAR_TEXT"
