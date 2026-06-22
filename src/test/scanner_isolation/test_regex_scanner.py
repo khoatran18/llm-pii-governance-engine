@@ -83,5 +83,5 @@ def test_regex_scanner(spark_session, test_config):
 
     test_logger.info("All tests passed!")
 
-# pytest src/test/unit/test_regex_scanner.py -v -s
+# pytest src/test/scanner_isolation/test_regex_scanner.py -v -s
 

@@ -31,13 +31,14 @@ spark:
   master_url: "spark://spark-master:7077"
   app_name: "Lakehouse_Ingestion_Job"
   iceberg_catalog_name: "iceberg"
-  executor_memory: "1g"
+  executor_memory: "2g"
   driver_memory: "1g"
   executor_cores: 1
+  executor_instances: 2
   cores_max: 2
   iceberg_db_name: "iceberg_data"
   load_job_name: "CSV_to_Iceberg_JDBC_Job"
-  csv_folder: "/app/data/production/*.csv"
+  csv_folder: "/app/data/prod/*.csv"
 
 trino:
   host: "trino"

@@ -31,9 +31,10 @@ spark:
   master_url: "spark://spark-master:7077"
   app_name: "Lakehouse_Ingestion_Job_Test"
   iceberg_catalog_name: "iceberg"
-  executor_memory: "1g"
+  executor_memory: "2g"
   driver_memory: "1g"
   executor_cores: 1
+  executor_instances: 2
   cores_max: 2
   iceberg_db_name: "iceberg_data"
   load_job_name: "CSV_to_Iceberg_JDBC_Job"
@@ -211,6 +212,11 @@ test_suite:
     ai_governance_pipeline_duration_seconds: 30
     policy_engine_overhead_percentages: 20
     get_mask_columns_latency_ms: 500.0
+
+    target_precision: 0.85
+    target_recall: 0.90
+    target_f1_score: 0.87
+    target_accuracy: 0.80
 
   masking_policies:
     ADMIN:

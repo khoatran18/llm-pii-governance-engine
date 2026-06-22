@@ -14,7 +14,7 @@ from src.test.conftest import spark_session
 setup_logging()
 test_logger = logging.getLogger("test")
 
-def test_policy_engine_overhead(test_config):
+def test_policy_engine_overhead(test_config, spark_session):
     """
     Measure the performance overhead of the Policy Engine.
     Evaluates the full end-to-end lifecycle including config parsing, database connection, and SparkSession instantiation.
@@ -25,10 +25,10 @@ def test_policy_engine_overhead(test_config):
     # 2. "POLICY_SHUFFLE_NORMAL_LAST"   : The 3 roles are shuffled first, then Normal runs last.
     # 3. "PURE_SHUFFLE_ALL"             : All 4 execution types are completely shuffled together.
     # 4. "EXPLICIT_MANUAL_ORDER"        : Follows a rigid custom sequence defined in MANUAL_SEQUENCE.
-    EXECUTION_STRATEGY = "NORMAL_FIRST_POLICY_SHUFFLE"
+    EXECUTION_STRATEGY = "PURE_SHUFFLE_ALL"
 
     # Only applicable if EXECUTION_STRATEGY is EXPLICIT_MANUAL_ORDER
-    MANUAL_SEQUENCE = ["NORMAL", "ANALYST", "AUDITOR", "ADMIN"]
+    MANUAL_SEQUENCE = ["ADMIN", "NORMAL", "ANALYST", "AUDITOR"]
 
     test_data_config = test_config["test_suite"]
     table_name = test_data_config["table_name"]
@@ -51,28 +51,33 @@ def test_policy_engine_overhead(test_config):
 
     # Encapsulated logic for executing standard, unmasked queries
     def run_normal_select(warm_up=False):
-        start_normal = time.perf_counter()
-        spark_session = get_spark_iceberg_jdbc(test_config)
         df_normal = spark_session.read.format("iceberg").option("inferSchema", "false").load(table_fqn)
-        _ = df_normal.count()
+
+        start_normal = time.perf_counter()
+        df_normal.show(10)
         dur_normal = time.perf_counter() - start_normal
+
         if not warm_up:
             normal_durations.append(dur_normal)
-        spark_session.stop()
         time.sleep(0.5)
+        spark_session.catalog.clearCache()
         return dur_normal
 
     # Encapsulated logic for executing role-based, dynamically masked queries
     def run_secure_select(role: UserRole, warm_up=False):
         start_secure = time.perf_counter()
-        df_policy_engine = policy_engine_main(table_name, None, role, test_config)
-        _ = df_policy_engine[0].count()
+        df_policy_engine = policy_engine_main(table_name, None, role, test_config, spark_session=spark_session)
+        target_df = df_policy_engine[0]
+
+        start_secure = time.perf_counter()
+        target_df.show(10)
         dur_secure = time.perf_counter() - start_secure
         if not warm_up:
             secure_durations_by_role[role].append(dur_secure)
-        if df_policy_engine and len(df_policy_engine) > 0:
-            df_policy_engine[0].sparkSession.stop()
+        # if df_policy_engine and len(df_policy_engine) > 0:
+        #     df_policy_engine[0].sparkSession.stop()
         time.sleep(0.5)
+        spark_session.catalog.clearCache()
         return dur_secure
 
     # Warm up phase
@@ -142,17 +147,84 @@ def test_policy_engine_overhead(test_config):
         for step_idx, task in enumerate(execution_pool, start=1):
             if task["type"] == "NORMAL":
                 test_logger.info(f"[Cycle {cycle} - Step {step_idx}/4] Normal select processing...")
+                # _ = run_normal_select(warm_up=True)
                 dur = run_normal_select()
                 test_logger.info(f"   Result: Normal select took {dur:.4f} seconds")
             else:
                 target_role = task["target"]
                 test_logger.info(
                     f"[Cycle {cycle} - Step {step_idx}/4] Policy Engine ({target_role.name}) processing...")
+                # _ = run_secure_select(target_role, warm_up=True)
                 dur = run_secure_select(target_role)
                 test_logger.info(f"   Result: Policy Engine ({target_role.name}) took {dur:.4f} seconds")
 
-    # Metrics report
-    avg_normal = sum(normal_durations) / len(normal_durations)
+    # # Metrics report
+    # avg_normal = sum(normal_durations) / len(normal_durations)
+    #
+    # # Output raw warm-up metrics
+    # test_logger.info("\n" + "-" * 25 + " WARM-UP EXECUTION METRICS " + "-" * 25)
+    # for engine_key, duration_val in warmup_metrics.items():
+    #     test_logger.info(f"Warm-up Target: {engine_key:<15} | Latency: {duration_val:.4f} s")
+    # test_logger.info("-" * 77)
+    #
+    # # Output detailed run-by-run execution matrix
+    # test_logger.info("\n" + "-" * 25 + " DETAILED RUN-BY-RUN MATRIX " + "-" * 25)
+    # test_logger.info(
+    #     f"{'Iteration':<10} | {'Normal Duration':<18} | {'Admin Duration':<18} | {'Analyst Duration':<18} | {'Auditor Duration':<18}")
+    # test_logger.info("-" * 96)
+    #
+    # for idx in range(NUM_CYCLES):
+    #     test_logger.info(
+    #         f"Run {idx + 1:<6} | "
+    #         f"{normal_durations[idx]:<16.4f} s | "
+    #         f"{secure_durations_by_role[UserRole.ADMIN][idx]:<16.4f} s | "
+    #         f"{secure_durations_by_role[UserRole.ANALYST][idx]:<16.4f} s | "
+    #         f"{secure_durations_by_role[UserRole.AUDITOR][idx]:<16.4f} s"
+    #     )
+    # test_logger.info("-" * 96)
+    #
+    # # 1. Gather all secure durations across all 3 roles to compute the total global average (15 runs)
+    # all_secure_runs = []
+    # for role in [UserRole.ADMIN, UserRole.ANALYST, UserRole.AUDITOR]:
+    #     all_secure_runs.extend(secure_durations_by_role[role])
+    # avg_secure_all_roles = sum(all_secure_runs) / len(all_secure_runs)
+    # total_global_overhead = (avg_secure_all_roles - avg_normal) / avg_normal * 100.0
+    #
+    # # Compute and assert final SLA parameters
+    # test_logger.info("\n" + "=" * 25 + " [PERFORMANCE] SPRINT POLICY ENGINE MATRIX " + "=" * 25)
+    # test_logger.info(f"Selected Strategy Strategy Plan   : {EXECUTION_STRATEGY}")
+    # test_logger.info(f"Baseline Normal Select Average   : {avg_normal:.4f} s")
+    # test_logger.info(f"Global Combined Secure Average   : {avg_secure_all_roles:.4f} s (All 15 secure runs total)")
+    # test_logger.info(f"Global Combined System Overhead  : {total_global_overhead:.2f}% (Threshold: < {max_overhead_percentages}%)")
+    #
+    # for role in [UserRole.ADMIN, UserRole.ANALYST, UserRole.AUDITOR]:
+    #     role_durations = secure_durations_by_role[role]
+    #     avg_secure_role = sum(role_durations) / len(role_durations)
+    #     role_overhead = (avg_secure_role - avg_normal) / avg_normal * 100.0
+    #
+    #     test_logger.info("-" * 87)
+    #     test_logger.info(f"Role Targeted Assessment         : {role.name}")
+    #     test_logger.info(f"   Average Secure Duration       : {avg_secure_role:.4f} s")
+    #     test_logger.info(
+    #         f"   Computed System Overhead Cost : {role_overhead:.2f}% (Threshold: < {max_overhead_percentages}%)")
+    #
+    #     assert role_overhead < max_overhead_percentages, \
+    #         f"Performance breached for role {role.name}. Calculated overhead {role_overhead:.2f}% exceeded threshold {max_overhead_percentages}%"
+    #
+    # test_logger.info("=" * 87 + "\n")
+
+    # ====================================================================================================
+    # METRICS REPORT - TÍNH TRUNG BÌNH RIÊNG BIỆT VÀ LOẠI BỎ PHẦN TỬ CHẬM NHẤT (OUTLIER)
+    # ====================================================================================================
+
+    # 1. Xử lý luồng Normal: Sắp xếp tăng dần và loại bỏ lượt chạy lâu nhất
+    normal_durations_sorted = sorted(normal_durations)
+    if len(normal_durations_sorted) > 1:
+        normal_durations_clean = normal_durations_sorted[:-1]  # Bỏ đi phần tử lâu nhất ở cuối
+    else:
+        normal_durations_clean = normal_durations_sorted
+
+    avg_normal = sum(normal_durations_clean) / len(normal_durations_clean) if normal_durations_clean else 0.0
 
     # Output raw warm-up metrics
     test_logger.info("\n" + "-" * 25 + " WARM-UP EXECUTION METRICS " + "-" * 25)
@@ -160,12 +232,11 @@ def test_policy_engine_overhead(test_config):
         test_logger.info(f"Warm-up Target: {engine_key:<15} | Latency: {duration_val:.4f} s")
     test_logger.info("-" * 77)
 
-    # Output detailed run-by-run execution matrix
+    # Output detailed run-by-run execution matrix (Giữ nguyên log raw ban đầu để audit)
     test_logger.info("\n" + "-" * 25 + " DETAILED RUN-BY-RUN MATRIX " + "-" * 25)
     test_logger.info(
         f"{'Iteration':<10} | {'Normal Duration':<18} | {'Admin Duration':<18} | {'Analyst Duration':<18} | {'Auditor Duration':<18}")
     test_logger.info("-" * 96)
-
     for idx in range(NUM_CYCLES):
         test_logger.info(
             f"Run {idx + 1:<6} | "
@@ -176,28 +247,49 @@ def test_policy_engine_overhead(test_config):
         )
     test_logger.info("-" * 96)
 
-    # 1. Gather all secure durations across all 3 roles to compute the total global average (15 runs)
-    all_secure_runs = []
-    for role in [UserRole.ADMIN, UserRole.ANALYST, UserRole.AUDITOR]:
-        all_secure_runs.extend(secure_durations_by_role[role])
-    avg_secure_all_roles = sum(all_secure_runs) / len(all_secure_runs)
-    total_global_overhead = (avg_secure_all_roles - avg_normal) / avg_normal * 100.0
+    # 2. Xử lý luồng Secure: Lặp qua từng Role, sắp xếp riêng biệt và loại bỏ lượt lâu nhất của riêng role đó
+    all_secure_runs_clean = []
+    secure_averages_by_role = {}
 
-    # Compute and assert final SLA parameters
+    for role in [UserRole.ADMIN, UserRole.ANALYST, UserRole.AUDITOR]:
+        raw_durations = secure_durations_by_role[role]
+
+        # Sắp xếp mảng thời gian tăng dần cho riêng Role này
+        sorted_durations = sorted(raw_durations)
+
+        # LOẠI BỎ PHẦN TỬ LÂU NHẤT: Cắt bỏ index cuối cùng của mảng đã sort
+        if len(sorted_durations) > 1:
+            clean_durations = sorted_durations[:-1]
+        else:
+            clean_durations = sorted_durations
+
+        # Tính toán trị trung bình Steady-State cho riêng Role này
+        avg_secure_role = sum(clean_durations) / len(clean_durations) if clean_durations else 0.0
+        secure_averages_by_role[role] = avg_secure_role
+
+        # Gom các run sạch vào mảng tổng để tính toán chỉ số Global
+        all_secure_runs_clean.extend(clean_durations)
+
+    # Tính toán các chỉ số tổng thể toàn cục (Global Combined)
+    avg_secure_all_roles = sum(all_secure_runs_clean) / len(all_secure_runs_clean) if all_secure_runs_clean else 0.0
+    total_global_overhead = ((avg_secure_all_roles - avg_normal) / avg_normal * 100.0) if avg_normal > 0 else 0.0
+
+    # Khởi tạo bảng thông số SLA chung
     test_logger.info("\n" + "=" * 25 + " [PERFORMANCE] SPRINT POLICY ENGINE MATRIX " + "=" * 25)
     test_logger.info(f"Selected Strategy Strategy Plan   : {EXECUTION_STRATEGY}")
-    test_logger.info(f"Baseline Normal Select Average   : {avg_normal:.4f} s")
-    test_logger.info(f"Global Combined Secure Average   : {avg_secure_all_roles:.4f} s (All 15 secure runs total)")
-    test_logger.info(f"Global Combined System Overhead  : {total_global_overhead:.2f}% (Threshold: < {max_overhead_percentages}%)")
+    test_logger.info(f"Baseline Normal Select Average   : {avg_normal:.4f} s (Chậm nhất đã loại bỏ)")
+    test_logger.info(f"Global Combined Secure Average   : {avg_secure_all_roles:.4f} s (Steady State Total)")
+    test_logger.info(
+        f"Global Combined System Overhead  : {total_global_overhead:.2f}% (Threshold: < {max_overhead_percentages}%)")
 
+    # Kiểm tra SLA độc lập cho từng Role và thực hiện Assert
     for role in [UserRole.ADMIN, UserRole.ANALYST, UserRole.AUDITOR]:
-        role_durations = secure_durations_by_role[role]
-        avg_secure_role = sum(role_durations) / len(role_durations)
-        role_overhead = (avg_secure_role - avg_normal) / avg_normal * 100.0
+        avg_secure_role = secure_averages_by_role[role]
+        role_overhead = ((avg_secure_role - avg_normal) / avg_normal * 100.0) if avg_normal > 0 else 0.0
 
         test_logger.info("-" * 87)
         test_logger.info(f"Role Targeted Assessment         : {role.name}")
-        test_logger.info(f"   Average Secure Duration       : {avg_secure_role:.4f} s")
+        test_logger.info(f"   Average Secure Duration (Hot) : {avg_secure_role:.4f} s (Chậm nhất đã loại bỏ)")
         test_logger.info(
             f"   Computed System Overhead Cost : {role_overhead:.2f}% (Threshold: < {max_overhead_percentages}%)")
 

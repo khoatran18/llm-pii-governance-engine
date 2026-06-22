@@ -135,7 +135,7 @@ def test_lm_scan(spark_session, test_config, llm_scanner, run_attempt):
 
     test_logger.info(f"Attempt {run_attempt} passed!")
 
-# pytest src/test/unit/test_llm_scanner.py -v -s
+# pytest src/test/scanner_isolation/test_llm_scanner.py -v -s
 
 
 

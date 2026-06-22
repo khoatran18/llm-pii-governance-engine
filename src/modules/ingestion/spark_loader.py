@@ -43,6 +43,40 @@ class SparkLoader:
             logger.info(f"Ensuring namespace exists: {catalog_name}.{db_name}")
             self.spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {catalog_name}.{db_name}")
 
+            # table_exists = self.spark.catalog.tableExists(full_table_path)
+            #
+            # if not table_exists:
+            #     df.writeTo(full_table_path) \
+            #         .tableProperty("write.format.default", "parquet") \
+            #         .tableProperty("write.parquet.compression-codec", "snappy") \
+            #         .create()
+            #
+            #     # Debug ngay sau khi tạo
+            #     logger.info("=== TABLE PROPERTIES AFTER CREATE ===")
+            #     self.spark.sql(f"SHOW TBLPROPERTIES {full_table_path}").show(truncate=False)
+            #
+            #     logger.info("=== TABLE FILES FORMAT ===")
+            #     self.spark.sql(f"SELECT file_format, count(*) FROM {full_table_path}.files GROUP BY file_format").show()
+            #
+            # else:
+            #     logger.info(f"Table {full_table_path} already exists. Checking current properties...")
+            #
+            #     props = self.spark.sql(f"SHOW TBLPROPERTIES {full_table_path}")
+            #     props.show(truncate=False)
+            #
+            #     logger.info(f"Enforcing Parquet properties before overwrite...")
+            #     self.spark.sql(f"""
+            #         ALTER TABLE {full_table_path}
+            #         SET TBLPROPERTIES (
+            #             'write.format.default'='parquet',
+            #             'write.parquet.compression-codec'='snappy'
+            #         )
+            #     """)
+            #
+            #     logger.info(f"Overwriting data in table {full_table_path}...")
+            #     df.writeTo(full_table_path).overwritePartitions()
+            #     logger.info(f"Table {full_table_path} overwritten successfully.")
+
             # Write data to Iceberg table
             df.write \
                 .format("iceberg") \
@@ -50,6 +84,11 @@ class SparkLoader:
                 .saveAsTable(full_table_path)
 
             logger.info(f"Data loaded successfully into Iceberg table: {table_name}")
+
+
+
+            # Ghi đè (Overwrite) dữ liệu bằng API V2
+            # df.writeTo(full_table_path).overwrite()
 
         except Exception as e:
             logger.error(f"Error loading data into Iceberg table: {table_name}", exc_info=True)

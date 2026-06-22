@@ -1,7 +1,9 @@
 import json
 import logging
+import threading
 
 from pyspark.sql import DataFrame
+from pyspark.sql.functions import col
 from sqlalchemy.engine import row
 
 from local.posgres_init_example import PostgresClient
@@ -13,6 +15,7 @@ from src.modules.policy_engine.data_masker import DataMasker
 setup_logging()
 logger = logging.getLogger(__name__)
 policy_engine_logger = logging.getLogger("policy_engine")
+policy_engine_logger.setLevel(logging.WARNING)
 
 class PolicyEngine:
     def __init__(self, spark_session, pg_client: PostgresClient, data_masker: DataMasker, config):
@@ -25,6 +28,7 @@ class PolicyEngine:
         """
         Get masking policies for a specific table and user role
         """
+
         sql_policy = """
             SELECT t.table_name, c.column_name, c.sensitivity_level, ap.masking_rule
             FROM columns_metadata c
@@ -43,8 +47,10 @@ class PolicyEngine:
             sql_policy += " AND c.column_name IN :target_columns"
             params["target_columns"] = tuple(target_columns)
 
-        # policy_engine_logger.info(f"SQL Policy: {sql_policy}")
-        return self.pg_client.execute_query(sql_policy, params)
+        policies = self.pg_client.execute_query(sql_policy, params)
+
+        return policies
+
 
     def _write_audit_log(self, user_role: UserRole, table_name: str, actual_columns: list, policies: list):
         """
@@ -101,19 +107,36 @@ class PolicyEngine:
         Get through the policies and apply masking to the data
         Policies: [{'column_name': 'col1', 'masking_rule': 'HASH'}, ...]
         """
-        df_secure = df_raw
-        actual_cols = df_raw.columns
+        # df_secure = df_raw
+        # actual_cols = df_raw.columns
+        #
+        # column_rule = {
+        #     row['column_name']: row['masking_rule'] for row in policies
+        # }
+        #
+        # for col_name in actual_cols:
+        #     if col_name in column_rule:
+        #         masking_rule = column_rule[col_name]
+        #         policy_engine_logger.info(f"Applying masking to column {col_name} with rule {masking_rule}")
+        #         df_secure = self.masker.apply_masking(df_secure, col_name, masking_rule)
+        # return df_secure
 
         column_rule = {
             row['column_name']: row['masking_rule'] for row in policies
         }
+        actual_cols = df_raw.columns
+
+        selected_expressions = []
 
         for col_name in actual_cols:
             if col_name in column_rule:
                 masking_rule = column_rule[col_name]
-                policy_engine_logger.info(f"Applying masking to column {col_name} with rule {masking_rule}")
-                df_secure = self.masker.apply_masking(df_secure, col_name, masking_rule)
-        return df_secure
+                col_expr = self.masker.get_masking_expression(col_name, masking_rule)
+                selected_expressions.append(col_expr)
+            else:
+                selected_expressions.append(col(col_name))
+
+        return df_raw.select(*selected_expressions)
 
     def execute_secure_pipeline(
             self,

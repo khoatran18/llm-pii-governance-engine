@@ -18,7 +18,7 @@ setup_logging()
 logger = logging.getLogger(__name__)
 policy_engine_logger = logging.getLogger("policy_engine")
 
-def policy_engine_main(table_name: str, selected_columns: list, user_role: UserRole, config: dict = None):
+def policy_engine_main(table_name: str, selected_columns: list, user_role: UserRole, config: dict = None, spark_session=None):
     policy_engine_logger.info("Starting Policy Engine Pipeline...")
 
     # 1. Load config
@@ -36,7 +36,8 @@ def policy_engine_main(table_name: str, selected_columns: list, user_role: UserR
     # 2. Init infrastructure
     logger.info("Connecting to infrastructure...")
     pg_client = PostgresClient(config)
-    spark_session = get_spark_iceberg_jdbc(config)
+    if not spark_session:
+        spark_session = get_spark_iceberg_jdbc(config)
     logger.info("Infrastructure connected successfully.")
 
     logger.info("Initializing Policy Engine Pipeline...")
@@ -61,7 +62,7 @@ if __name__ == "__main__":
 
     policy_engine_logger.info(f"Executing automated column query for {analyst_role.name} on table '{test_table}'")
     secure_dfs_case1 = policy_engine_main(
-        table_name=None,
+        table_name="citizen_info",
         selected_columns=[],
         user_role=analyst_role
     )

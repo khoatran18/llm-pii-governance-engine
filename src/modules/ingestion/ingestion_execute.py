@@ -26,6 +26,7 @@ def ingestion_execution(csv_folder: str = None, config: dict = None):
     e_memory = config["spark"].get("executor_memory", "1g")
     e_cores = str(config["spark"].get("executor_cores", 1))
     c_max = str(config["spark"].get("cores_max", 2))
+    e_instances = str(config["spark"].get("executor_instances", 2))
 
     cmd = [
         "docker",  "exec", container_name, "/bin/bash",
@@ -35,6 +36,7 @@ def ingestion_execution(csv_folder: str = None, config: dict = None):
         "--executor-memory", e_memory,
         "--executor-cores", e_cores,
         "--total-executor-cores", c_max,
+        "--num-executors", e_instances,
         "--packages", ",".join([
             "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.1",
             "org.apache.iceberg:iceberg-aws-bundle:1.6.1",

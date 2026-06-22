@@ -1,6 +1,5 @@
 import logging
-
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, Column
 import pyspark.sql.functions as F
 
 from src.config.logging import setup_logging
@@ -20,32 +19,32 @@ class DataMasker:
             MaskingRule.CLEAR_TEXT: self._clear_text
         }
 
-    def _hash_mask(self, df: DataFrame, column: str):
+    def _hash_mask(self, column: str) -> Column:
         """
         Hash the value of a column by applying SHA-256
         """
-        return df.withColumn(column, F.sha2(F.col(column).cast("string"), 256))
+        return F.sha2(F.col(column).cast("string"), 256)
 
-    def _redact_mask(self, df: DataFrame, column: str):
+    def _redact_mask(self, column: str) -> Column:
         """
         Replace the value of a column with a fixed string
         """
-        return df.withColumn(column, F.lit("REDACTED"))
+        return F.lit("REDACTED")
 
-    def _nullify_mask(self, df: DataFrame, column: str):
+    def _nullify_mask(self, column: str) -> Column:
         """
         Replace the value of a column with NULL (maintaining the same data type)
         """
-        # return df.withColumn(column, F.lit(None).cast(df.schema[column].dataType))
-        return df.withColumn(column, F.lit(None))
+        return F.lit(None).cast("string")
 
-    def _partial_mask(self, df: DataFrame, column: str):
+    def _partial_mask(self, column: str) -> Column:
         """
         Mask a partial value of a column based on the format of the value
         With Email:                 -> g******@gmail.com
         With Phone or Resident ID:  -> 045*****6789
         """
-        # For Email
+
+        # Email Expression
         email_masked = F.expr(f"""
             concat(
                 substring({column}, 1, 1),
@@ -55,17 +54,26 @@ class DataMasker:
             )
         """)
 
-        # For Name
-        name_masked = F.expr(f"""
-            concat_ws(' ',
-                transform(
-                    split({column}, ' '),
-                    word -> concat(substring(word, 1, 1), repeat('*', greatest(0, length(word) - 1)))
-                )
-            )
-        """)
+        # Name Expression
+        # name_masked = F.expr(f"""
+        #     concat_ws(' ',
+        #         transform(
+        #             split({column}, ' '),
+        #             word -> concat(substring(word, 1, 1), repeat('*', greatest(0, length(word) - 1)))
+        #         )
+        #     )
+        # """)
 
-        # For Phone or Resident ID
+        # name_masked = F.regexp_replace(
+        #     F.regexp_replace(F.col(column), r"(?<=\s)\w", "*"),  # Mask ký tự đầu của các từ sau
+        #     r"(?<=^\w)\w+", "*"  # Mask phần còn lại của từ đầu tiên
+        # )
+
+        # name_masked = F.expr(f"regexp_replace({column}, r'(\\w)(\\w+)', '$1***')")
+
+        name_masked = F.regexp_replace(F.col(column), r"(?<=\w)\w", "*")
+
+        # Phone / CCCD Expression
         phone_masked = F.expr(f"""
             concat(
                 substring({column}, 1, 3),
@@ -74,72 +82,39 @@ class DataMasker:
             )
         """)
 
-        return df.withColumn(
-            column,
-            F.when(F.col(column).like("%@%"), email_masked)
-            .otherwise(
-                F.when(F.col(column).contains(" "), name_masked)
+        return F.when(F.col(column).like("%@%"), email_masked) \
                 .otherwise(
-                    F.when(F.length(F.col(column)) >= 6, phone_masked)
-                    .otherwise(F.lit("[INVALID_DATA]"))
+                    F.when(F.col(column).contains(" "), name_masked) \
+                     .otherwise(
+                         F.when(F.length(F.col(column)) >= 6, phone_masked) \
+                          .otherwise(F.lit("[INVALID_DATA]"))
+                     )
                 )
-            )
-        )
 
+    def _clear_text(self, column: str) -> Column:
+        return F.col(column)
 
-    def _clear_text(self, df: DataFrame, column: str):
-        return df
+    def get_masking_expression(self, column: str, masking_rule: MaskingRule) -> Column:
+        """
+        Return a Column expression based on the masking rule
+        """
+        rule_enum = masking_rule
+        if isinstance(masking_rule, str):
+            try:
+                rule_enum = MaskingRule(masking_rule)
+            except ValueError:
+                rule_enum = MaskingRule[masking_rule]
 
-    def apply_masking(self, df: DataFrame, column: str, masking_rule: MaskingRule):
-        transformer = self._transformer_map.get(masking_rule)
+        transformer = self._transformer_map.get(rule_enum)
         if transformer:
-            return transformer(df, column)
+            return transformer(column).alias(column)
         else:
             logger.error(f"Invalid masking rule: {masking_rule}")
             raise ValueError(f"Invalid masking rule: {masking_rule}")
 
-
-
-    # def _partial_mask(self, df: DataFrame, column: str):
-    #     """
-    #     Mask a partial value of a column based on the format of the value
-    #     With Email:                 -> g******@gmail.com
-    #     With Phone or Resident ID:  -> 045*****6789
-    #     """
-    #     # For Email
-    #     logger.info("Step 1")
-    #     domain_part = F.element_at(F.split(F.col(column), "@"), 1)
-    #     email_name_len = F.length(F.col(column)) - F.length(domain_part) - F.lit(1)
-    #
-    #     logger.info("Step 2")
-    #     email_star_count = F.greatest(F.lit(0), email_name_len - F.lit(1))
-    #     logger.info("Step 3")
-    #     email_masked = F.concat(
-    #         F.substring(F.col(column), 1, 1),
-    #         F.repeat("*", email_star_count),
-    #         F.lit("@"),
-    #         domain_part
-    #     )
-    #
-    #     logger.info("Step 4")
-    #     # For Phone or Resident ID
-    #     num_star_count = F.greatest(F.lit(0), F.length(F.col(column)) - F.lit(7))
-    #     logger.info("Step 5")
-    #     phone_masked = F.concat(
-    #         F.substring(F.col(column), 1, 3),
-    #         F.repeat("*", num_star_count),
-    #         F.substring(F.col(column), -4, 4)
-    #     )
-    #
-    #     return df.withColumn(
-    #         column,
-    #         F.when(F.col(column).like("%@%"), email_masked) \
-    #             .otherwise(
-    #                 F.when(F.length(F.col(column)) >= 6, phone_masked)
-    #                     .otherwise(F.lit("[INVALID_DATA]"))
-    #         )
-    #     )
-
-
-
-
+    def apply_masking(self, df: DataFrame, column: str, masking_rule: MaskingRule) -> DataFrame:
+        """
+        Backward compatibility
+        """
+        expr = self.get_masking_expression(column, masking_rule)
+        return df.withColumn(column, expr)

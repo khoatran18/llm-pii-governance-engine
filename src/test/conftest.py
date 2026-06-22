@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from src.config.loader import load_config
 from src.core.postgres.postgres_client import PostgresClient
 from src.core.spark.spark_builder import get_spark_iceberg_jdbc
 from src.llm.factory import LLMFactory
@@ -22,6 +23,12 @@ def spark_session(test_config):
     spark = get_spark_iceberg_jdbc(test_config)
     yield spark
     spark.stop()
+
+@pytest.fixture(scope="session")
+def prod_config():
+    config = load_config()
+    os.environ["AWS_REGION"] = config["storage"]["minio"]["region"]
+    return config
 
 @pytest.fixture(scope="session")
 def pg_client(test_config):
