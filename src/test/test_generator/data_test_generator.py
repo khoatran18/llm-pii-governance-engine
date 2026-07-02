@@ -45,7 +45,9 @@ GENERATOR_MAPPING = {
     "status_code": make_status_code,
     "is_active": make_is_active,
     "retry_count": make_retry_count,
-    "tx_amount": make_amount
+    "tx_amount": make_amount,
+    "dp": make_ip,
+    "asi": make_is_active
 }
 
 NOISE_GENERATOR = [

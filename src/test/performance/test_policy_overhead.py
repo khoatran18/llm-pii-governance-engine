@@ -277,7 +277,7 @@ def test_policy_engine_overhead(test_config, spark_session):
     # Khởi tạo bảng thông số SLA chung
     test_logger.info("\n" + "=" * 25 + " [PERFORMANCE] SPRINT POLICY ENGINE MATRIX " + "=" * 25)
     test_logger.info(f"Selected Strategy Strategy Plan   : {EXECUTION_STRATEGY}")
-    test_logger.info(f"Baseline Normal Select Average   : {avg_normal:.4f} s (Chậm nhất đã loại bỏ)")
+    test_logger.info(f"Baseline Normal Select Average   : {avg_normal:.4f} s ")
     test_logger.info(f"Global Combined Secure Average   : {avg_secure_all_roles:.4f} s (Steady State Total)")
     test_logger.info(
         f"Global Combined System Overhead  : {total_global_overhead:.2f}% (Threshold: < {max_overhead_percentages}%)")
@@ -289,7 +289,7 @@ def test_policy_engine_overhead(test_config, spark_session):
 
         test_logger.info("-" * 87)
         test_logger.info(f"Role Targeted Assessment         : {role.name}")
-        test_logger.info(f"   Average Secure Duration (Hot) : {avg_secure_role:.4f} s (Chậm nhất đã loại bỏ)")
+        test_logger.info(f"   Average Secure Duration (Hot) : {avg_secure_role:.4f} s ")
         test_logger.info(
             f"   Computed System Overhead Cost : {role_overhead:.2f}% (Threshold: < {max_overhead_percentages}%)")
 

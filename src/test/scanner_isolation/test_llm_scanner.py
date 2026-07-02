@@ -20,7 +20,7 @@ setup_logging()
 test_logger = logging.getLogger("test")
 
 @pytest.mark.parametrize("run_attempt", [1, 2, 3])
-def test_lm_scan(spark_session, test_config, llm_scanner, run_attempt):
+def test_llm_scan(spark_session, test_config, llm_scanner, run_attempt):
     """
     Unit test for the LLM Semantic Scanner component.
     - Implements stratified sampling for hybrid columns to evaluate noisy environments.

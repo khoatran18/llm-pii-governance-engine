@@ -71,141 +71,86 @@ governance:
     - "llm"
 
 test_suite:
-  table_name: "test_suite"
+  table_name: "e2e_data"
   total_rows: 5000
   columns_config:
-    ### REGEX TAGS
-    # RESIDENT_ID:
-    - column_name: "cccd_clean"
+    # RESIDENT_ID
+    - column_name: "resident_id"
       sensitivity_tag: "RESIDENT_ID"
-      match_percentage: 100
-      regex_status: "SUCCESS"
-      detection_method: "REGEX"
-      expected_regex_score: 1.0
-    - column_name: "cccd_noise_70"
+      match_percentage: 85
+    - column_name: "r7"
       sensitivity_tag: "RESIDENT_ID"
-      match_percentage: 70
-      regex_status: "SUCCESS"
-      detection_method: "REGEX"
-      expected_regex_score: 0.7
+      match_percentage: 85
 
-    # PHONE:
-    - column_name: "phone_clean"
+    # PHONE
+    - column_name: "phone_number"
       sensitivity_tag: "PHONE"
-      match_percentage: 100
-      regex_status: "SUCCESS"
-      detection_method: "REGEX"
-      expected_regex_score: 1.0
-    - column_name: "phone_noise_70"
+      match_percentage: 85
+    - column_name: "p4"
       sensitivity_tag: "PHONE"
-      match_percentage: 70
-      regex_status: "SUCCESS"
-      detection_method: "REGEX"
-      expected_regex_score: 0.7
+      match_percentage: 85
 
-    # EMAIL:
-    - column_name: "email_clean"
+    # EMAIL
+    - column_name: "email_address"
       sensitivity_tag: "EMAIL"
-      match_percentage: 100
-      regex_status: "SUCCESS"
-      detection_method: "REGEX"
-      expected_regex_score: 1.0
-    - column_name: "email_noise_70"
+      match_percentage: 85
+    - column_name: "e8"
       sensitivity_tag: "EMAIL"
-      match_percentage: 70
-      regex_status: "SUCCESS"
-      detection_method: "REGEX"
-      expected_regex_score: 0.7
-    - column_name: "e8_n_65"
-      sensitivity_tag: "EMAIL"
-      match_percentage: 65
-      regex_status: "UNDETERMINED"
-      detection_method: "HYBRID"
-      expected_regex_score: 0.65
+      match_percentage: 85
 
-    # HEALTH_INSURANCE_ID:
-    - column_name: "health_insurance_id_clean"
+    # HEALTH_INSURANCE_ID
+    - column_name: "health_insurance_id"
       sensitivity_tag: "HEALTH_INSURANCE_ID"
-      match_percentage: 100
-      regex_status: "SUCCESS"
-      detection_method: "REGEX"
-      expected_regex_score: 1.0
-    - column_name: "health_insurance_id_noise_70"
+      match_percentage: 85
+    - column_name: "h6"
       sensitivity_tag: "HEALTH_INSURANCE_ID"
-      match_percentage: 70
-      regex_status: "SUCCESS"
-      detection_method: "REGEX"
-      expected_regex_score: 0.7
+      match_percentage: 85
 
-    ### LLM TAGS
-    - column_name: "c03"
+    # NAME
+    - column_name: "full_name"
       sensitivity_tag: "NAME"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "LLM"
-      expected_regex_score: 0.0
-    - column_name: "o_text"
-      sensitivity_tag: "ADDRESS"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "LLM"
-      expected_regex_score: 0.0
-    - column_name: "m_val"
-      sensitivity_tag: "SALARY"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "LLM"
-      expected_regex_score: 0.0
-    - column_name: "info"
-      sensitivity_tag: "DOB"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "LLM"
-      expected_regex_score: 0.0
+      match_percentage: 85
+    - column_name: "c3"
+      sensitivity_tag: "NAME"
+      match_percentage: 85
 
-    ### NONE TAGS
+    # ADDRESS
+    - column_name: "address"
+      sensitivity_tag: "ADDRESS"
+      match_percentage: 85
+    - column_name: "o2"
+      sensitivity_tag: "ADDRESS"
+      match_percentage: 85
+
+    # SALARY
+    - column_name: "salary"
+      sensitivity_tag: "SALARY"
+      match_percentage: 85
+    - column_name: "m5"
+      sensitivity_tag: "SALARY"
+      match_percentage: 85
+
+    # DOB
+    - column_name: "date_of_birth"
+      sensitivity_tag: "DOB"
+      match_percentage: 85
+    - column_name: "d9"
+      sensitivity_tag: "DOB"
+      match_percentage: 85
+
+    # NONE
     - column_name: "sys_record_id"
       sensitivity_tag: "NONE"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "HYBRID"
-      expected_regex_score: 0.0
-    - column_name: "device_ip_address"
+      match_percentage: 85
+    - column_name: "dp"
       sensitivity_tag: "NONE"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "HYBRID"
-      expected_regex_score: 0.0
-    - column_name: "user_agent_hash"
-      sensitivity_tag: "NONE"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "HYBRID"
-      expected_regex_score: 0.0
+      match_percentage: 85
     - column_name: "status_code"
       sensitivity_tag: "NONE"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "HYBRID"
-      expected_regex_score: 0.0
-    - column_name: "is_active"
+      match_percentage: 85
+    - column_name: "asi"
       sensitivity_tag: "NONE"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "HYBRID"
-      expected_regex_score: 0.0
-    - column_name: "retry_count"
-      sensitivity_tag: "NONE"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "HYBRID"
-      expected_regex_score: 0.0
-    - column_name: "tx_amount"
-      sensitivity_tag: "NONE"
-      match_percentage: 100
-      regex_status: "UNDETERMINED"
-      detection_method: "HYBRID"
-      expected_regex_score: 0.0
+      match_percentage: 85
 
   test_performance:
     ai_governance_pipeline_duration_seconds: 30

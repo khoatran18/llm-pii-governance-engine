@@ -243,11 +243,6 @@ def make_salary() -> tuple:
 def make_ip() -> tuple:
     return ".".join(str(random.randint(1, 254)) for _ in range(4)), SensitivityTag.NONE
 
-# def make_date(start_year: int = 2020, end_year: int = 2024) -> tuple:
-#     start = date(start_year, 1, 1)
-#     end   = date(end_year, 12, 31)
-#     return start + timedelta(days=random.randint(0, (end - start).days)), SensitivityTag.NONE
-
 def make_household_no() -> tuple:
     return f"{rand(PROVINCE_CODES)}/{random.randint(100_000, 999_999)}", SensitivityTag.NONE
 

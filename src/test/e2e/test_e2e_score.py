@@ -10,8 +10,8 @@ from src.modules.ai_governance.ai_governance_main import ai_governance_main
 setup_logging()
 test_logger = logging.getLogger("test")
 
-TEST_MODE = "prod" # test or prod - data_dir and prod_config are different
-TARGET_TABLE_NAME = "medical_records"
+TEST_MODE = "test" # test or prod - data_dir and prod_config are different
+TARGET_TABLE_NAME = "e2e_data"
 
 DATA_DIR = Path(__file__).parents[3] / "data" / TEST_MODE
 GROUND_TRUTH_DIR = DATA_DIR / "metadata"

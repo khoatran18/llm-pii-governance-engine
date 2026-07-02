@@ -19,7 +19,7 @@ from src.modules.ai_governance.pipeline import AIGovernancePipeline
 setup_logging()
 logger = logging.getLogger(__name__)
 
-def ai_governance_main(target_table: str = "", config = None):
+def ai_governance_main(target_table: str = "", config = None, spark_session = None):
     logger.info("Starting AI Governance Pipeline...")
 
     # 1. Load config
@@ -37,7 +37,8 @@ def ai_governance_main(target_table: str = "", config = None):
     # 2. Init infrastructure
     logger.info("Connecting to infrastructure...")
     pg_client = PostgresClient(config)
-    spark_session = get_spark_iceberg_jdbc(config)
+    if not spark_session:
+        spark_session = get_spark_iceberg_jdbc(config)
     logger.info("Infrastructure connected successfully.")
 
     logger.info("Initializing AI Governance Pipeline...")

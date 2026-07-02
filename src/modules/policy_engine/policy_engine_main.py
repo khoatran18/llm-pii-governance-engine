@@ -56,9 +56,9 @@ def policy_engine_main(table_name: str, selected_columns: list, user_role: UserR
 if __name__ == "__main__":
     policy_engine_logger.info("=== POLICY ENGINE DYNAMIC TESTING SYSTEM ===")
 
-    test_table = "citizen_info"
+    test_table = "hr_employees"
 
-    analyst_role = UserRole.AUDITOR
+    analyst_role = UserRole.ADMIN
 
     policy_engine_logger.info(f"Executing automated column query for {analyst_role.name} on table '{test_table}'")
     secure_dfs_case1 = policy_engine_main(
