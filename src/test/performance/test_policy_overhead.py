@@ -66,7 +66,7 @@ def test_policy_engine_overhead(test_config, spark_session):
     # Encapsulated logic for executing role-based, dynamically masked queries
     def run_secure_select(role: UserRole, warm_up=False):
         start_secure = time.perf_counter()
-        df_policy_engine = policy_engine_main(table_name, None, role, test_config, spark_session=spark_session)
+        df_policy_engine = policy_engine_main(user_role=role, table_name=table_name, selected_columns=None, config=test_config, spark_session=spark_session)
         target_df = df_policy_engine[0]
 
         start_secure = time.perf_counter()

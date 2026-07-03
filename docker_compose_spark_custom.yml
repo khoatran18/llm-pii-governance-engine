@@ -97,6 +97,25 @@ services:
       /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
       "
 
+#  zeppelin:
+#    image: apache/zeppelin:0.11.2
+#    container_name: zeppelin
+#    restart: unless-stopped
+#    ports:
+#      - '8082:8080'
+#    networks:
+#      - test-network
+#    depends_on:
+#      - spark-master
+#    environment:
+#      - SPARK_HOME=/opt/spark
+#      - SPARK_MASTER=spark://spark-master:7077
+#      - AWS_REGION=us-east-1
+#      - PYTHONPATH=/app
+#    volumes:
+#      - .:/app
+#      - spark_share_bin:/opt/spark
+
   grafana:
     image: grafana/grafana:latest
     container_name: grafana

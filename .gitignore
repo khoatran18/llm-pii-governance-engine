@@ -221,3 +221,4 @@ local/
 data/
 
 **/.idea/*
+**/docs/*

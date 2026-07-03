@@ -36,6 +36,7 @@ def test_dynamic_update(spark_session, pg_client, test_config):
     table_id = table_rows[0]["table_id"]
 
     # Initialize
+    spark_session.range(1, 10).repartition(1).count()
     data_masker = DataMasker()
     pipeline = PolicyEngine(spark_session, pg_client, data_masker, test_config)
     column_names_extract = [col_info["column_name"] for col_info in columns_config]

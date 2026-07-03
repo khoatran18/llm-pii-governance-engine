@@ -18,7 +18,7 @@ setup_logging()
 logger = logging.getLogger(__name__)
 policy_engine_logger = logging.getLogger("policy_engine")
 
-def policy_engine_main(table_name: str, selected_columns: list, user_role: UserRole, config: dict = None, spark_session=None):
+def policy_engine_main(user_role: UserRole, table_name: str = "", selected_columns: list = [], config: dict = None, spark_session=None):
     policy_engine_logger.info("Starting Policy Engine Pipeline...")
 
     # 1. Load config
@@ -56,13 +56,13 @@ def policy_engine_main(table_name: str, selected_columns: list, user_role: UserR
 if __name__ == "__main__":
     policy_engine_logger.info("=== POLICY ENGINE DYNAMIC TESTING SYSTEM ===")
 
-    test_table = "hr_employees"
+    test_table = "citizen_info"
 
-    analyst_role = UserRole.ADMIN
+    analyst_role = UserRole.AUDITOR
 
     policy_engine_logger.info(f"Executing automated column query for {analyst_role.name} on table '{test_table}'")
     secure_dfs_case1 = policy_engine_main(
-        table_name="citizen_info",
+        table_name=test_table,
         selected_columns=[],
         user_role=analyst_role
     )

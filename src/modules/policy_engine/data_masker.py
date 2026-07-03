@@ -71,7 +71,7 @@ class DataMasker:
 
         # name_masked = F.expr(f"regexp_replace({column}, r'(\\w)(\\w+)', '$1***')")
 
-        name_masked = F.regexp_replace(F.col(column), r"(?<=\w)\w", "*")
+        name_masked = F.regexp_replace(F.col(column), r"(?<=\S)\S", "*")
 
         # Phone / CCCD Expression
         phone_masked = F.expr(f"""
